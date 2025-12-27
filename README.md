@@ -1,73 +1,25 @@
-# React + TypeScript + Vite
+# The Web Brain Project
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The Web Brain Project (WBP) is a website focused on organizing educational content across the web along a graph data structure relating skills and online educational resources with each other.
 
-Currently, two official plugins are available:
+## Description / Vision
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Graphs (the data structure consisting of vertices and edges) can be used to arrange skills or concepts to show their "is prerequisite to" relationships with online educational resources. One can imagine course syllabuses being connected with each other depending on the prerequisites and objectives they have in common; instead of course syllabuses, WBP uses URLs to online learning resources. Represented like ASCII art, they can be related as follows: (One or more Skill(s))-[Is Prerequisite To]->(URL of Learning Material)-[That Teaches]->(One or more Skill(s)). Doing so may yield many benefits; a non-exhaustive list could be:
 
-## React Compiler
+- Putting into context the rich library of educational content across the web that don't always make their prerequisites obvious, making them more accessible to learners, by creating pathways that they can follow from a skill that they have towards the one they want.
+- Highlighting nodes that a learner has progressed through, and providing cues when they should be reviewed makes it easier to spot holes and to avoid what Salman Khan called "Swiss Cheese Learning" (see his book "The One World Schoolhouse").
+- By attaching data to nodes, such as financial and time cost to URL nodes, and job availability and salaries to skill nodes, learners could make more informed decisions about the investment to reward ratio of working towards certain skills, and pick the skills they want accordingly.
+- This project was initially inspired by video game skill trees and my hope is that it can eventually be used in a gamified learning platform.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Usage (NOT YET COMPLETELY IMPLEMENTED)
 
-## Expanding the ESLint configuration
+Listed below are the steps we envision a user would take to use the site, once the MVP is finished:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- A learner, upon entering the site, is expected to:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Enter a keyword (e.g., "html") on the searchbox to search for skill nodes or module nodes
+2. From the search results, pick a node that they would like to generate a learning path to
+3. Clicking "Generate Path" isolates a path from the "E" node (the entry node representing no skills) towards the picked node.
+4. User takes an initial skill check, so skills within the path that they already have will be highlighted.
+5. User goes through the learning materials from the most advanced highlighted (i.e., already acquired) skill node towards the desired skill node.
+6. Progress is saved locally in their browser.
