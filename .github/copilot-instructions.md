@@ -34,7 +34,7 @@ Note that a URL can have multiple prerequisite skills, and multiple objective sk
 - **TypeScript**: Strict mode enabled, no unused locals/parameters
 - **React**: Functional components with hooks, JSX transform
 - **Imports**: ES modules with verbatim syntax
-- **Linting**: Flat ESLint config with React hooks and refresh plugins
+- **Linting**: Flat ESLint config with React hooks, refresh, accessibility, JSDoc, and import sorting plugins. Enforces camelCase variables, camelCase/PascalCase functions (for components), PascalCase types, semicolons (via @stylistic), no console logs, alphabetical imports, JSX keys, no prop mutation, and JSDoc on exports (warn)
 
 ## Key Files
 
@@ -55,7 +55,9 @@ Note that a URL can have multiple prerequisite skills, and multiple objective sk
 
 - **Runtime**: React 19, React DOM
 - **Build**: Vite, TypeScript 5.9
-- **Lint**: ESLint 9 with TypeScript and React plugins
+- **Lint**: ESLint 9 with TypeScript, React, accessibility, JSDoc, import, and stylistic plugins
 - **Testing**: Vitest, Mock Service Worker, React Testing Library
 
 Focus on graph algorithms and educational UX when implementing features.
+
+Run all commands on Git Bash instead of Powershell
