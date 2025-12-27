@@ -26,7 +26,10 @@ Note that a URL can have multiple prerequisite skills, and multiple objective sk
 
 - **Start Development**: `npm run dev` (Vite dev server)
 - **Build**: `npm run build` (TypeScript compilation + Vite build)
-- **Lint**: `npm run lint` (ESLint with flat config)
+- **Lint**: `npm run lint` (ESLint with flat config, auto-fixes where possible)
+- **Test**: `npm test` (Vitest with React Testing Library)
+- **Test UI**: `npm run test:ui` (Vitest UI for interactive testing)
+- **Test Run**: `npm run test:run` (Run tests once)
 - **Preview**: `npm run preview` (Serve built app)
 
 ## Code Conventions
