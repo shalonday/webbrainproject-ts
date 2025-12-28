@@ -1,10 +1,15 @@
+import { CssBaseline } from "@mui/material";
+
+import Search from "./pages/search/Search";
+
 /**
  *
  */
 function App() {
   return (
     <>
-      <div>App</div>
+      <CssBaseline />
+      <Search />
     </>
   );
 }

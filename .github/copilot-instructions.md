@@ -56,7 +56,7 @@ Note that a URL can have multiple prerequisite skills, and multiple objective sk
 
 ## Dependencies
 
-- **Runtime**: React 19, React DOM
+- **Runtime**: React 19, React DOM, Material UI (@mui/material, @emotion/react, @emotion/styled)
 - **Build**: Vite, TypeScript 5.9
 - **Lint**: ESLint 9 with TypeScript, React, accessibility, JSDoc, import, and stylistic plugins
 - **Testing**: Vitest, Mock Service Worker, React Testing Library
