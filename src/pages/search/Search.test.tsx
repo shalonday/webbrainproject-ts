@@ -57,7 +57,7 @@ describe("Search input box", () => {
 
     // type "foo" then press Enter
     expect(searchInput).toHaveFocus();
-    await user.keyboard("foo");
+    await user.keyboard("javascript");
     await user.keyboard("{Enter}"); // simulate pressing Enter after typing "foo"
 
     // wait for any loading to finish then assert that a result containing "foo" appears
@@ -69,7 +69,9 @@ describe("Search input box", () => {
       timeout: 30000,
     });
 
-    // expect results from msw to reflect in the svg and text
+    // expect the D3 svg node corresponding to the javascript skill node to be highlighted
+    const javascriptNode = screen.getByTestId("node-javascript");
+    expect(javascriptNode).toHaveClass("highlighted");
   });
 });
 

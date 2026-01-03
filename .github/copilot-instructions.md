@@ -15,6 +15,8 @@ Example: `Skill A -> URL -> Skill B` means URL teaches Skill B requiring Skill A
 
 Note that a URL can have multiple prerequisite skills, and multiple objective skills as well.
 
+**Data Model Notes**: When creating nodes of type `url`, the `name` property must always contain the actual URL string (e.g., `"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"`), not a descriptive label.
+
 ## Architecture & Data Flow
 
 - **Frontend**: React 19 with TypeScript, built with Vite
