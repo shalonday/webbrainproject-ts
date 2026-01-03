@@ -1,8 +1,10 @@
 import { Box, CircularProgress, TextField } from "@mui/material";
-import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useState } from "react";
 
-import { fetchUniversalTree } from "../../services/services";
+import { useSkillTreesContext } from "../../contexts/SkillTreesContext.tsx";
 import type { Tree, WBNode } from "../../types/types";
+import SearchPageChart from "./SearchPageChart.tsx";
 
 /**
  * Search page component that allows users to search through the universal tree of skills and URLs.
@@ -10,29 +12,9 @@ import type { Tree, WBNode } from "../../types/types";
  *
  * @returns {JSX.Element} The rendered search page.
  */
-function Search() {
+function Search(): ReactNode {
+  const { universalTree, isLoadingQuery } = useSkillTreesContext();
   const [searchTerm, setSearchTerm] = useState("");
-  const [universalTree, setUniversalTree] = useState<Tree | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    /**
-     * Loads the universal tree data from the API.
-     * Sets the data in state and handles loading/errors.
-     */
-    const loadData = async () => {
-      try {
-        const data = await fetchUniversalTree();
-        setUniversalTree(data);
-        console.log(data);
-      } catch (error) {
-        console.error("Failed to fetch universal tree:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
 
   /**
    * Searches for nodes in the tree that match the given query.
@@ -89,7 +71,7 @@ function Search() {
     }
   };
 
-  if (loading) {
+  if (isLoadingQuery) {
     return (
       <Box
         sx={{
@@ -106,6 +88,7 @@ function Search() {
 
   return (
     <>
+      {universalTree && <SearchPageChart universalTree={universalTree} />}
       <TextField
         id="search-textbox"
         label="Search"
