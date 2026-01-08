@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 
+import { BASE_URL } from "../common-constants";
 import type { Tree } from "../types/types";
 
 const mockTreeData: Tree = {
@@ -35,7 +36,7 @@ const mockTreeData: Tree = {
 };
 
 export const handlers = [
-  http.get("http://localhost:3000/tree", () => {
+  http.get(`${BASE_URL}/tree`, () => {
     return HttpResponse.json(mockTreeData);
   }),
 ];

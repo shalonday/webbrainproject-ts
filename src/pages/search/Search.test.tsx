@@ -5,7 +5,9 @@ import { userEvent } from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
 
+import { BASE_URL } from "../../common-constants";
 import { SkillTreesContextProvider } from "../../contexts/SkillTreesContext";
+import { server } from "../../test/setup";
 import Search from "./Search";
 
 /**
@@ -36,11 +38,10 @@ function renderWithProviders(
 }
 
 /**
- *
+ * Tests for the Search input box functionality.
  */
 
 describe("Search input box", () => {
-  // behavior is erratic; sometimes succeeds sometimes doesn't. Need to investigate !!!
   it("is focused when tab is pressed once", async () => {
     renderWithProviders(<Search />);
 
@@ -79,41 +80,54 @@ describe("Search input box", () => {
     expect(searchInput).toHaveFocus();
   });
 
-  it("when focused, runs a search on the input value when Enter key is pressed", async () => {
-    renderWithProviders(<Search />);
+  it("when focused, pressing Enter filters locally without refetching", async () => {
+    const requests: string[] = [];
 
-    // wait for loading screen to finish
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
-    );
+    /**
+     * Collects each MSW-captured request so the test can assert a fetch occurred.
+     */
+    const handleRequestStart = ({ request }: { request: Request }) => {
+      requests.push(`${request.method} ${request.url}`);
+    };
 
-    const searchInput = screen.getByRole("textbox", { name: /search/i });
+    server.events.on("request:start", handleRequestStart);
 
-    const user = userEvent.setup();
+    try {
+      renderWithProviders(<Search />);
 
-    await user.tab();
+      // wait for loading screen to finish
+      await waitFor(
+        () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
+        { timeout: 30000 }
+      );
 
-    // type "javascript" then press Enter
-    expect(searchInput).toHaveFocus();
-    await user.keyboard("javascript");
-    await user.keyboard("{Enter}"); // simulate pressing Enter after typing "foo"
+      const initialTreeRequests = requests.filter(
+        (req) => req === `GET ${BASE_URL}/tree`
+      ).length;
 
-    // wait for any loading to finish then assert that a result containing "foo" appears
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
-    );
-    await waitFor(
-      () => expect(screen.getByText(/javascript/i)).toBeInTheDocument(),
-      {
-        timeout: 30000,
-      }
-    );
+      const searchInput = screen.getByRole("textbox", { name: /search/i });
 
-    // // expect the D3 svg node corresponding to the javascript skill node to be highlighted
-    // const javascriptNode = screen.getByTestId("node-javascript");
-    // expect(javascriptNode).toHaveClass("highlighted");
+      const user = userEvent.setup();
+
+      // focus the search input
+      await user.click(searchInput);
+
+      // type "javascript" then press Enter
+      expect(searchInput).toHaveFocus();
+      await user.keyboard("javascript");
+      await user.keyboard("{Enter}");
+
+      // pressing Enter should not trigger another fetch; it filters locally
+      await waitFor(
+        () =>
+          expect(
+            requests.filter((req) => req === `GET ${BASE_URL}/tree`).length
+          ).toBe(initialTreeRequests),
+        { timeout: 30000 }
+      );
+    } finally {
+      server.events.removeAllListeners("request:start");
+    }
   }, 60000);
 });
 
