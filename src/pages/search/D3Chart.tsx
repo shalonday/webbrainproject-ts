@@ -1,7 +1,19 @@
 import * as d3 from "d3";
 import { useEffect, useRef } from "react";
 
+import {
+  ACTIVE_MODULE_FILL,
+  ACTIVE_SKILL_FILL,
+  INACTIVE_LINK_COLOR,
+  INACTIVE_MODULE_FILL,
+  INACTIVE_SKILL_FILL,
+  MINOR_RADIUS,
+  RADIUS,
+} from "../../common-constants";
 import type { Link, Tree, WBNode } from "../../types/types";
+
+// Vitest sets NODE_ENV="test" automatically; Vite sets it for dev/prod builds
+const IS_TEST_ENV = import.meta.env.MODE === "test";
 
 // Type representing a WBNode augmented with D3 simulation properties
 type SimulatedWBNode = WBNode & d3.SimulationNodeDatum;
@@ -28,122 +40,272 @@ function isSimulatedNode(endpoint: LinkEndpoint): endpoint is SimulatedWBNode {
   return typeof endpoint !== "string";
 }
 
-const RADIUS = 7;
-const MINOR_RADIUS = RADIUS / 2;
-//const ACTIVE_SKILL_FILL = "hsl(315 100% 60%)";
-const INACTIVE_SKILL_FILL = "hsl(240 100% 30%)";
-//const ACTIVE_MODULE_FILL = "hsl(180 100% 50%)";
-const INACTIVE_MODULE_FILL = "hsl(60 10% 20%)";
-//const ACTIVE_LINK_COLOR = "hsl(180 100% 50%)";
-const INACTIVE_LINK_COLOR = "hsl(60 10% 20%)";
+/**
+ * Determines the fill color for a node based on its type and selection state.
+ *
+ * @param node - The node to style.
+ * @param selectedIds - Array of selected node IDs.
+ * @returns The appropriate fill color.
+ */
+function getNodeFill(node: SimulatedWBNode, selectedIds: string[]): string {
+  const isSelected = selectedIds.includes(node.id);
+  if (node.type === "skill") {
+    return isSelected ? ACTIVE_SKILL_FILL : INACTIVE_SKILL_FILL;
+  }
+  if (node.type === "url") {
+    return isSelected ? ACTIVE_MODULE_FILL : INACTIVE_MODULE_FILL;
+  }
+  return INACTIVE_SKILL_FILL;
+}
 
 interface D3ChartProps {
   currentNode?: WBNode | null;
-  onNodeClick?: (event: React.MouseEvent<SVGCircleElement>) => void;
+  onNodeClick?: (nodeId: string) => void;
   onNodeTouchEnd?: (event: React.TouchEvent<SVGCircleElement>) => void;
   onNodeTouchStart?: (event: React.TouchEvent<SVGCircleElement>) => void;
   selectedNodeIds?: string[];
   tree: Tree;
 }
 
+type LinkSelection = d3.Selection<
+  SVGLineElement,
+  LinkDatum,
+  SVGGElement | null,
+  unknown
+>;
+type NodeSelection = d3.Selection<
+  SVGCircleElement,
+  SimulatedWBNode,
+  SVGGElement | null,
+  unknown
+>;
+
 /**
- * Creates and manages a D3 force-directed graph simulation.
- * Sets up node and link rendering with forces for positioning, charge repulsion, and centering.
- * Handles visual styling for active/inactive states and different node types.
+ * Creates a D3 force simulation with physics-based positioning.
+ * Applies forces for link tension, charge repulsion, and center attraction.
  *
- * @param data - The tree data containing nodes and links to visualize.
- * @param svgRef - Reference to the SVG element containing the graph.
- * @param gNodeAndLinkRef - Reference to the group element containing all nodes and links.
- * @param gLinkRef - Reference to the group element containing link elements.
- * @param gNodeRef - Reference to the group element containing node elements.
- * @param viewBoxWidth - Width of the SVG viewBox, defaults to 400.
- * @param viewBoxHeight - Height of the SVG viewBox, defaults to 400.
+ * @param nodes - Array of nodes to simulate.
+ * @param links - Array of links connecting nodes.
+ * @param width - Canvas width for center-force positioning.
+ * @param height - Canvas height for center-force positioning.
+ * @param ticked - Callback invoked on each simulation tick for position updates.
+ * @returns The initialized force simulation.
  */
-function ForceGraph(
-  data: Tree,
-  gNodeAndLinkRef: React.RefObject<SVGGElement | null>,
-  gLinkRef: React.RefObject<SVGGElement | null>,
-  gNodeRef: React.RefObject<SVGGElement | null>,
-  viewBoxWidth = 400,
-  viewBoxHeight = 400
-  // onNodeClick,
-  // onNodeTouchStart,
-  // onNodeTouchEnd
+function createSimulation(
+  nodes: SimulatedWBNode[],
+  links: LinkDatum[],
+  width: number,
+  height: number,
+  ticked: () => void
 ) {
-  // Specify the dimensions of the chart.
-
-  // The force simulation mutates links and nodes, so create a copy
-  // so that re-evaluating this cell produces the same result.
-  const links = data.links.map((d) => ({ ...d }));
-  const nodes = data.nodes.map((d) => ({ ...d })) as SimulatedWBNode[];
-
-  // Create a simulation with several forces.
-  const simulation = d3
+  return d3
     .forceSimulation(nodes)
     .force(
       "link",
       d3.forceLink<SimulatedWBNode, (typeof links)[0]>(links).id((d) => d.id)
     )
     .force("charge", d3.forceManyBody().strength(-30))
-    .force("x", d3.forceX(viewBoxWidth / 2))
-    .force("y", d3.forceY(viewBoxHeight / 2))
+    .force("x", d3.forceX(width / 2))
+    .force("y", d3.forceY(height / 2))
     .on("tick", ticked);
+}
 
-  const link = d3
+/**
+ * Renders link elements with D3 selection binding.
+ * Sets stroke color and marker endpoint for visual directionality.
+ *
+ * @param gLinkRef - Reference to the SVG group containing link elements.
+ * @param links - Array of link data to bind to elements.
+ * @returns D3 selection of rendered line elements for further manipulation.
+ */
+function renderLinks(
+  gLinkRef: React.RefObject<SVGGElement | null>,
+  links: LinkDatum[]
+): LinkSelection {
+  return d3
     .select(gLinkRef.current)
     .selectAll<SVGLineElement, LinkDatum>("line")
     .data(links)
     .attr("stroke", INACTIVE_LINK_COLOR)
-    // .attr("stroke", (d) => {
-    //   if (!d.active) return INACTIVE_LINK_COLOR;
-    //   else if (d.active) return ACTIVE_LINK_COLOR;
-    // })
     .attr("marker-end", (d) => `url(#arrow-${d.id})`);
+}
 
+/**
+ * Renders arrow markers for link directionality.
+ * Marker elements are attached to links via marker-end attributes.
+ *
+ * @param gLinkRef - Reference to the SVG group containing marker definitions.
+ * @param links - Array of link data to bind to marker elements.
+ */
+function renderMarkers(
+  gLinkRef: React.RefObject<SVGGElement | null>,
+  links: LinkDatum[]
+) {
   d3.select(gLinkRef.current)
     .selectAll<SVGMarkerElement, LinkDatum>("marker")
     .data(links)
     .attr("fill", INACTIVE_LINK_COLOR);
-  // .attr("fill", (d) => {
-  //   if (!d.active) return INACTIVE_LINK_COLOR;
-  //   else if (d.active) {
-  //     return ACTIVE_LINK_COLOR;
-  //   }
-  // });
+}
 
-  const node = d3
+/**
+ * Updates node fill colors based on selection state.
+ * Called when selectedNodeIds changes without recreating the simulation.
+ *
+ * @param gNodeRef - Reference to the SVG group containing node elements.
+ * @param selectedNodeIds - Array of selected node IDs for styling.
+ */
+function updateNodeColors(
+  gNodeRef: React.RefObject<SVGGElement | null>,
+  selectedNodeIds: string[]
+) {
+  d3.select(gNodeRef.current)
+    .selectAll<SVGCircleElement, SimulatedWBNode>("circle")
+    .attr("fill", (d) => getNodeFill(d, selectedNodeIds));
+}
+
+/**
+ * Renders node circles with styling and drag behavior.
+ * Applies radius and fill based on node type (skill/url) and selection state.
+ *
+ * @param gNodeRef - Reference to the SVG group containing node elements.
+ * @param nodes - Array of nodes to render.
+ * @param selectedNodeIds - Array of selected node IDs for styling.
+ * @param simulation - Force simulation for drag interaction.
+ * @returns D3 selection of rendered circle elements.
+ */
+function renderNodes(
+  gNodeRef: React.RefObject<SVGGElement | null>,
+  nodes: SimulatedWBNode[],
+  selectedNodeIds: string[],
+  simulation: d3.Simulation<
+    SimulatedWBNode,
+    d3.SimulationLinkDatum<SimulatedWBNode>
+  >
+): NodeSelection {
+  return d3
     .select(gNodeRef.current)
     .selectAll<SVGCircleElement, SimulatedWBNode>("circle")
     .data(nodes)
     .attr("r", (d) =>
       d.type === "skill" || d.type === "url" ? RADIUS : MINOR_RADIUS
     )
-    .attr("fill", (d) => {
-      if (d.type === "skill") {
-        return INACTIVE_SKILL_FILL;
-        // return d.active ? ACTIVE_SKILL_FILL : INACTIVE_SKILL_FILL;
-      } else if (d.type === "url") {
-        return INACTIVE_MODULE_FILL;
-        // return d.active ? ACTIVE_MODULE_FILL : INACTIVE_MODULE_FILL;
-      }
-      return INACTIVE_SKILL_FILL;
-    })
+    .attr("fill", (d) => getNodeFill(d, selectedNodeIds))
     .attr("stroke", "black")
-    .call(drag(simulation));
+    .call((selection) => {
+      // Skip drag hookup in test environments or when DOM is unavailable
+      if (IS_TEST_ENV || typeof document === "undefined" || !gNodeRef.current) {
+        return selection;
+      }
+      return selection.call(createDrag(simulation));
+    });
+}
+
+/**
+ * Creates a drag behavior for graph nodes.
+ * Allows nodes to be interactively dragged while maintaining the force simulation.
+ * Based on: https://observablehq.com/@d3/force-directed-graph-component
+ */
+function createDrag(
+  simulation: d3.Simulation<
+    SimulatedWBNode,
+    d3.SimulationLinkDatum<SimulatedWBNode>
+  >
+) {
+  /**
+   * Handles drag start: pins node and restarts simulation.
+   */
+  function dragstarted(
+    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
+  ) {
+    // onNodeTouchStart(event); // put the touch events within the drag events because I don't know how to trigger the longtouch otherwise
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    event.subject.fx = event.subject.x;
+    event.subject.fy = event.subject.y;
+  }
 
   /**
-   * Updates the positions of nodes and links on each simulation tick.
-   * Called automatically by the D3 force simulation to animate the graph.
+   * Handles dragging: updates node position during drag.
    */
-  function ticked() {
-    link
-      .attr("x1", (d) => (isSimulatedNode(d.source) ? d.source.x ?? 0 : 0))
-      .attr("y1", (d) => (isSimulatedNode(d.source) ? d.source.y ?? 0 : 0))
-      .attr("x2", (d) => (isSimulatedNode(d.target) ? d.target.x ?? 0 : 0))
-      .attr("y2", (d) => (isSimulatedNode(d.target) ? d.target.y ?? 0 : 0));
-
-    node.attr("cx", (d) => d.x ?? 0).attr("cy", (d) => d.y ?? 0);
+  function dragged(
+    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
+  ) {
+    event.subject.fx = event.x;
+    event.subject.fy = event.y;
   }
+
+  /**
+   * Handles drag end: releases node and cools simulation.
+   */
+  function dragended(
+    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
+  ) {
+    // onNodeTouchEnd(event);
+    if (!event.active) simulation.alphaTarget(0);
+    event.subject.fx = null;
+    event.subject.fy = null;
+  }
+
+  return d3
+    .drag<SVGCircleElement, SimulatedWBNode>()
+    .on("start", dragstarted)
+    .on("drag", dragged)
+    .on("end", dragended);
+}
+
+/**
+ * Updates SVG element positions from simulation node/link coordinates.
+ * Called on each simulation tick to animate graph layout.
+ *
+ * @param link - D3 selection of link elements to update.
+ * @param node - D3 selection of node elements to update.
+ */
+function updatePositions(link: LinkSelection, node: NodeSelection) {
+  link
+    .attr("x1", (d) => (isSimulatedNode(d.source) ? d.source.x ?? 0 : 0))
+    .attr("y1", (d) => (isSimulatedNode(d.source) ? d.source.y ?? 0 : 0))
+    .attr("x2", (d) => (isSimulatedNode(d.target) ? d.target.x ?? 0 : 0))
+    .attr("y2", (d) => (isSimulatedNode(d.target) ? d.target.y ?? 0 : 0));
+
+  node.attr("cx", (d) => d.x ?? 0).attr("cy", (d) => d.y ?? 0);
+}
+
+/**
+ * Orchestrates the D3 force-directed graph setup and rendering.
+ * Creates simulation, renders nodes/links, and wires update callbacks.
+ *
+ * @param data - Tree data containing nodes and links.
+ * @param selectedNodeIds - Array of selected node IDs for styling.
+ * @param gNodeAndLinkRef - Reference to the main SVG group.
+ * @param gLinkRef - Reference to the links SVG group.
+ * @param gNodeRef - Reference to the nodes SVG group.
+ * @param viewBoxWidth - Width for center-force positioning, defaults to 400.
+ * @param viewBoxHeight - Height for center-force positioning, defaults to 400.
+ */
+function ForceGraph(
+  data: Tree,
+  selectedNodeIds: string[],
+  gNodeAndLinkRef: React.RefObject<SVGGElement | null>,
+  gLinkRef: React.RefObject<SVGGElement | null>,
+  gNodeRef: React.RefObject<SVGGElement | null>,
+  viewBoxWidth = 400,
+  viewBoxHeight = 400
+) {
+  // The force simulation mutates links and nodes, so create a copy
+  // so that re-evaluating this cell produces the same result.
+  const links = data.links.map((d) => ({ ...d }));
+  const nodes = data.nodes.map((d) => ({ ...d })) as SimulatedWBNode[];
+
+  const linkSelection = renderLinks(gLinkRef, links);
+  renderMarkers(gLinkRef, links);
+
+  const nodeSelection = renderNodes(
+    gNodeRef,
+    nodes,
+    selectedNodeIds,
+    createSimulation(nodes, links, viewBoxWidth, viewBoxHeight, () =>
+      updatePositions(linkSelection, nodeSelection)
+    )
+  );
 
   //   /**
   //    * Applies zoom and pan transformations to the graph.
@@ -155,61 +317,6 @@ function ForceGraph(
   //     const gNodesAndLinks = d3.select(gNodeAndLinkRef.current);
   //     gNodesAndLinks.attr("transform", transform);
   //   }
-
-  /**
-   * Creates a drag behavior for graph nodes.
-   * Allows nodes to be interactively dragged while maintaining the force simulation.
-   * Based on: https://observablehq.com/@d3/force-directed-graph-component
-   *
-   * @param simulation - The D3 force simulation managing the graph layout.
-   * @returns A D3 drag behavior to attach to node elements.
-   */
-  function drag(
-    simulation: d3.Simulation<
-      SimulatedWBNode,
-      d3.SimulationLinkDatum<SimulatedWBNode>
-    >
-  ) {
-    /**
-     *
-     */
-    function dragstarted(
-      event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
-    ) {
-      // onNodeTouchStart(event); // put the touch events within the drag events because I don't know how to trigger the longtouch otherwise
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
-    }
-
-    /**
-     *
-     */
-    function dragged(
-      event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
-    ) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
-    }
-
-    /**
-     *
-     */
-    function dragended(
-      event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
-    ) {
-      // onNodeTouchEnd(event);
-      if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
-    }
-
-    return d3
-      .drag<SVGCircleElement, SimulatedWBNode>()
-      .on("start", dragstarted)
-      .on("drag", dragged)
-      .on("end", dragended);
-  }
 }
 
 /**
@@ -239,25 +346,32 @@ export default function D3Chart({
   const gNodeAndLinkRef = useRef<SVGGElement>(null);
   const svgContainerRef = useRef<HTMLDivElement>(null);
 
+  // Create simulation only when tree data changes
   useEffect(() => {
     const viewBoxWidth = svgContainerRef.current?.clientWidth;
     const viewBoxHeight = svgContainerRef.current?.clientHeight;
 
     ForceGraph(
       tree,
+      selectedNodeIds,
       gNodeAndLinkRef,
       gLinkRef,
       gNodeRef,
       viewBoxWidth,
       viewBoxHeight
     );
-  }, [tree]); // that viewBoxWidth and Height are here is probs the reason the chart always restarts when I click stuff
+    // selectedNodeIds intentionally excluded: color updates handled by separate effect
+    // Refs are stable and don't need to be dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree]);
+
+  // Update node colors when selection changes without recreating simulation
+  useEffect(() => {
+    updateNodeColors(gNodeRef, selectedNodeIds);
+  }, [selectedNodeIds]);
 
   return (
-    <div
-      ref={svgContainerRef}
-      style={{ height: "85vh", width: "100vw" }}
-    >
+    <div ref={svgContainerRef} style={{ height: "85vh", width: "100vw" }}>
       <svg
         ref={svgRef}
         style={{ height: "100%", width: "100%" }}
@@ -288,7 +402,8 @@ export default function D3Chart({
               <circle
                 className={selectedNodeIds.includes(node.id) ? "selected" : ""}
                 key={node.id}
-                onClick={onNodeClick}
+                // Closure captures node.id to pass to click handler
+                onClick={() => onNodeClick(node.id)}
                 onTouchEnd={onNodeTouchEnd}
                 onTouchStart={onNodeTouchStart}
                 strokeWidth={1.5}

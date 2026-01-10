@@ -5,7 +5,11 @@ import { userEvent } from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
 
-import { BASE_URL } from "../../common-constants";
+import {
+  ACTIVE_MODULE_FILL,
+  ACTIVE_SKILL_FILL,
+  BASE_URL,
+} from "../../common-constants";
 import { SkillTreesContextProvider } from "../../contexts/SkillTreesContext";
 import { server } from "../../test/setup";
 import Search from "./Search";
@@ -162,9 +166,39 @@ describe("Search Page Graph Display", () => {
   //   throw new Error();
   // });
 
-  // it("User can double click a skill node to select it", () => {
-  //   throw new Error();
-  // });
+  it("highlights a clicked node", async () => {
+    renderWithProviders(<Search />);
+
+    // render the universal tree first
+    await waitFor(
+      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
+      { timeout: 30000 }
+    );
+    const svgElement = document.querySelector("svg");
+    expect(svgElement).toBeInTheDocument();
+    const circles = document.querySelectorAll("circle");
+    expect(circles.length).toBeGreaterThan(0);
+    const lines = document.querySelectorAll("line");
+    expect(lines.length).toBeGreaterThan(0);
+
+    // click on a skill node
+    const user = userEvent.setup();
+    const firstCircle = circles[0];
+    await user.click(firstCircle);
+
+    // check that the skill node is highlighted
+    expect(firstCircle).toHaveAttribute("fill", ACTIVE_SKILL_FILL);
+
+    // click on a URL node
+    const urlNode = Array.from(circles).find(
+      (circle) => circle.getAttribute("type") === "url"
+    );
+    // check that the URL node is highlighted
+    if (urlNode) {
+      await user.click(urlNode);
+      expect(urlNode).toHaveAttribute("fill", ACTIVE_MODULE_FILL);
+    }
+  });
 
   // it("User can double click a URL node to select it", () => {
   //   throw new Error();

@@ -8,8 +8,8 @@ interface SearchPageChartProps {
 }
 
 /**
- * Displays the skill tree visualization using D3Chart.
- * Currently focused on displaying the universal tree without selection features.
+ * Displays the skill tree visualization using D3Chart with node selection support.
+ * Manages selected node IDs and provides click handler for toggling node selection.
  *
  * @param props - Component props.
  * @param props.universalTree - The complete graph of all nodes and links to display.
@@ -17,10 +17,30 @@ interface SearchPageChartProps {
  */
 function SearchPageChart({ universalTree }: SearchPageChartProps) {
   const [displayedTree] = useState(universalTree);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+
+  /**
+   * Handles node click events to toggle node selection.
+   */
+  const handleNodeClick = (nodeId: string) => {
+    setSelectedNodeIds((prevSelected) => {
+      if (prevSelected.includes(nodeId)) {
+        // Deselect if already selected
+        return prevSelected.filter((id) => id !== nodeId);
+      } else {
+        // Add to selection
+        return [...prevSelected, nodeId];
+      }
+    });
+  };
 
   return (
     <>
-      <D3Chart tree={displayedTree} />
+      <D3Chart
+        onNodeClick={handleNodeClick}
+        selectedNodeIds={selectedNodeIds}
+        tree={displayedTree}
+      />
     </>
   );
 }
