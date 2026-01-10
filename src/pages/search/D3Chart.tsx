@@ -81,6 +81,29 @@ type NodeSelection = d3.Selection<
 >;
 
 /**
+ * Attaches pan/zoom behavior to the SVG and applies transforms to the graph group.
+ */
+function setupZoom(
+  svgRef: React.RefObject<SVGSVGElement | null>,
+  gNodeAndLinkRef: React.RefObject<SVGGElement | null>
+) {
+  if (IS_TEST_ENV || typeof document === "undefined" || !svgRef.current) {
+    return;
+  }
+
+  const svgSelection = d3.select(svgRef.current);
+  const zoomBehavior = d3
+    .zoom<SVGSVGElement, unknown>()
+    .scaleExtent([0.5, 4])
+    .on("zoom", (event) => {
+      d3.select(gNodeAndLinkRef.current).attr("transform", event.transform);
+    });
+
+  // Remove prior zoom handlers before applying a new one
+  svgSelection.on(".zoom", null).call(zoomBehavior);
+}
+
+/**
  * Creates a D3 force simulation with physics-based positioning.
  * Applies forces for link tension, charge repulsion, and center attraction.
  *
@@ -127,26 +150,8 @@ function renderLinks(
     .selectAll<SVGLineElement, LinkDatum>("line")
     .data(links)
     .attr("stroke", INACTIVE_LINK_COLOR)
-    .attr("marker-end", (d) => `url(#arrow-${d.id})`);
+    .attr("marker-end", "url(#arrow)");
 }
-
-/**
- * Renders arrow markers for link directionality.
- * Marker elements are attached to links via marker-end attributes.
- *
- * @param gLinkRef - Reference to the SVG group containing marker definitions.
- * @param links - Array of link data to bind to marker elements.
- */
-function renderMarkers(
-  gLinkRef: React.RefObject<SVGGElement | null>,
-  links: LinkDatum[]
-) {
-  d3.select(gLinkRef.current)
-    .selectAll<SVGMarkerElement, LinkDatum>("marker")
-    .data(links)
-    .attr("fill", INACTIVE_LINK_COLOR);
-}
-
 /**
  * Updates node fill colors based on selection state.
  * Called when selectedNodeIds changes without recreating the simulation.
@@ -287,6 +292,7 @@ function ForceGraph(
   gNodeAndLinkRef: React.RefObject<SVGGElement | null>,
   gLinkRef: React.RefObject<SVGGElement | null>,
   gNodeRef: React.RefObject<SVGGElement | null>,
+  svgRef: React.RefObject<SVGSVGElement | null>,
   viewBoxWidth = 400,
   viewBoxHeight = 400
 ) {
@@ -296,7 +302,6 @@ function ForceGraph(
   const nodes = data.nodes.map((d) => ({ ...d })) as SimulatedWBNode[];
 
   const linkSelection = renderLinks(gLinkRef, links);
-  renderMarkers(gLinkRef, links);
 
   const nodeSelection = renderNodes(
     gNodeRef,
@@ -307,16 +312,7 @@ function ForceGraph(
     )
   );
 
-  //   /**
-  //    * Applies zoom and pan transformations to the graph.
-  //    *
-  //    * @param params - Object containing the transform.
-  //    * @param params.transform - The D3 zoom transform to apply.
-  //    */
-  //   function zoomed({ transform }: { transform: d3.ZoomTransform }) {
-  //     const gNodesAndLinks = d3.select(gNodeAndLinkRef.current);
-  //     gNodesAndLinks.attr("transform", transform);
-  //   }
+  setupZoom(svgRef, gNodeAndLinkRef);
 }
 
 /**
@@ -357,6 +353,7 @@ export default function D3Chart({
       gNodeAndLinkRef,
       gLinkRef,
       gNodeRef,
+      svgRef,
       viewBoxWidth,
       viewBoxHeight
     );
@@ -377,22 +374,22 @@ export default function D3Chart({
         style={{ height: "100%", width: "100%" }}
         viewBox="0 0 400 400"
       >
+        <defs>
+          <marker
+            id="arrow"
+            markerHeight="10"
+            markerUnits="strokeWidth"
+            markerWidth="8"
+            orient="auto"
+            refX="10"
+            refY="5"
+            viewBox="0 0 10 10"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={INACTIVE_LINK_COLOR} />
+          </marker>
+        </defs>
         <g ref={gNodeAndLinkRef}>
           <g ref={gLinkRef}>
-            {tree.links.map((link) => (
-              <marker
-                id="arrow"
-                key={`m${link.id}`}
-                markerHeight="3"
-                markerWidth="3"
-                orient="auto-start-reverse"
-                refX="15"
-                refY="5"
-                viewBox="0 0 10 10"
-              >
-                <path d="M 0 0 L 10 5 L 0 10 z" />
-              </marker>
-            ))}
             {tree.links.map((link) => (
               <line key={link.id} markerEnd="url(#arrow)" strokeWidth={1.5} />
             ))}
