@@ -37,21 +37,6 @@ export default defineConfig([
     rules: {
       "no-console": "error",
       "no-param-reassign": "error",
-      "@typescript-eslint/naming-convention": [
-        "error",
-        {
-          selector: "variable",
-          format: ["camelCase"],
-        },
-        {
-          selector: "function",
-          format: ["camelCase", "PascalCase"],
-        },
-        {
-          selector: "typeLike",
-          format: ["PascalCase"],
-        },
-      ],
       "@stylistic/semi": ["error", "always"],
       "@stylistic/member-delimiter-style": [
         "error",
