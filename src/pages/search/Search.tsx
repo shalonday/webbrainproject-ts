@@ -1,4 +1,16 @@
-import { Box, CircularProgress, TextField } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import {
+  Box,
+  Card,
+  CircularProgress,
+  InputAdornment,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  TextField,
+  Typography,
+} from "@mui/material";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -15,6 +27,11 @@ import SearchPageChart from "./SearchPageChart.tsx";
 function Search(): ReactNode {
   const { universalTree, isLoadingQuery } = useSkillTreesContext();
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<WBNode[]>([]);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+
+  // Sample recommended nodes (you can replace this with actual logic)
+  const recommendedNodes: WBNode[] = universalTree?.nodes.slice(0, 5) || [];
 
   /**
    * Searches for nodes in the tree that match the given query.
@@ -31,32 +48,31 @@ function Search(): ReactNode {
 
   /**
    * Checks if a given node matches the search query.
-   * Currently only matches skill-type nodes by name.
+   * Matches both skill and URL nodes by name.
    *
    * @param {WBNode} node - The node to check for a match.
    * @param {string} query - The search query string.
    * @returns {boolean} True if the node matches the query, false otherwise.
    */
   function nodeIsMatch(node: WBNode, query: string): boolean {
-    if (node.type === "skill") {
-      return node.name?.toLowerCase().includes(query.toLowerCase());
-    }
-    return false;
+    return node.name?.toLowerCase().includes(query.toLowerCase()) ?? false;
   }
 
   /**
    * Handles the search logic when a search term is provided.
-   * Filters the universal tree and logs results (placeholder for display logic).
+   * Filters the universal tree and displays results.
    *
    * @param {string} term - The search term entered by the user.
    */
   const handleSearch = (term: string) => {
-    if (!universalTree) return;
-    // Placeholder: Filter through universalTree based on term
-    console.log("Searching for:", term, "in", universalTree);
-    // TODO: Implement filtering and display logic
-    const results = searchNodes(searchTerm, universalTree);
-    console.log(results);
+    if (!universalTree || !term.trim()) {
+      setSearchResults([]);
+      setIsSearchActive(false);
+      return;
+    }
+    const results = searchNodes(term, universalTree);
+    setSearchResults(results);
+    setIsSearchActive(true);
   };
 
   /**
@@ -87,23 +103,164 @@ function Search(): ReactNode {
   }
 
   return (
-    <>
-      {universalTree && <SearchPageChart universalTree={universalTree} />}
-      <TextField
-        id="search-textbox"
-        label="Search"
-        variant="outlined"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        onKeyDown={handleKeyDown}
+    <Box sx={{ position: "relative", width: "100%", height: "100vh" }}>
+      {/* Background Chart */}
+      {universalTree && (
+        <SearchPageChart
+          universalTree={universalTree}
+          highlightedNodeIds={searchResults.map((node) => node.id)}
+        />
+      )}
+
+      {/* Foreground Waze-style Bottom Card */}
+      <Card
         sx={{
           position: "absolute",
-          bottom: "20%",
-          left: "50%",
-          transform: "translateX(-50%)",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          maxHeight: "60vh",
+          minHeight: "40vh",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.1)",
+          display: "flex",
+          flexDirection: "column",
+          zIndex: 1000,
+          overflow: "hidden",
         }}
-      />
-    </>
+      >
+        {/* Drag Handle (optional visual indicator) */}
+        <Box
+          sx={{
+            width: 40,
+            height: 4,
+            backgroundColor: "grey.300",
+            borderRadius: 2,
+            alignSelf: "center",
+            mt: 1,
+            mb: 2,
+          }}
+        />
+
+        {/* Search Input */}
+        <Box sx={{ px: 3, pb: 2 }}>
+          <TextField
+            id="search-textbox"
+            placeholder="Search for a skill or URL"
+            aria-label="search"
+            variant="outlined"
+            fullWidth
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (!e.target.value.trim()) {
+                setIsSearchActive(false);
+                setSearchResults([]);
+              }
+            }}
+            onKeyDown={handleKeyDown}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 3,
+                backgroundColor: "grey.100",
+              },
+            }}
+          />
+        </Box>
+
+        {/* Results or Recommended Section */}
+        <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
+          {isSearchActive ? (
+            // Search Results
+            <>
+              <Typography
+                variant="subtitle2"
+                sx={{ px: 1, py: 1, color: "text.secondary" }}
+              >
+                {searchResults.length} result
+                {searchResults.length !== 1 ? "s" : ""} found
+              </Typography>
+              <List>
+                {searchResults.map((node) => (
+                  <ListItem key={node.id} disablePadding>
+                    <ListItemButton
+                      sx={{
+                        borderRadius: 2,
+                        mb: 0.5,
+                      }}
+                    >
+                      <ListItemText
+                        primary={node.name}
+                        secondary={`Type: ${node.type}`}
+                        primaryTypographyProps={{
+                          fontWeight: 500,
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+                {searchResults.length === 0 && (
+                  <Typography
+                    variant="body2"
+                    sx={{ px: 1, py: 2, color: "text.secondary" }}
+                  >
+                    No results found for &quot;{searchTerm}&quot;
+                  </Typography>
+                )}
+              </List>
+            </>
+          ) : (
+            // Recommended Results
+            <>
+              <Typography
+                variant="subtitle2"
+                sx={{ px: 1, py: 1, color: "text.secondary" }}
+              >
+                Recommended Skills
+              </Typography>
+              <List>
+                {recommendedNodes.map((node) => (
+                  <ListItem key={node.id} disablePadding>
+                    <ListItemButton
+                      sx={{
+                        borderRadius: 2,
+                        mb: 0.5,
+                      }}
+                    >
+                      <ListItemText
+                        primary={node.name}
+                        secondary={`Type: ${node.type}`}
+                        primaryTypographyProps={{
+                          fontWeight: 500,
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+                {recommendedNodes.length === 0 && (
+                  <Typography
+                    variant="body2"
+                    sx={{ px: 1, py: 2, color: "text.secondary" }}
+                  >
+                    No recommendations available
+                  </Typography>
+                )}
+              </List>
+            </>
+          )}
+        </Box>
+      </Card>
+    </Box>
   );
 }
 

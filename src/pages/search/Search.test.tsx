@@ -12,6 +12,7 @@ import {
 } from "../../common-constants";
 import { SkillTreesContextProvider } from "../../contexts/SkillTreesContext";
 import { server } from "../../test/setup";
+import type { WBNode } from "../../types/types";
 import Search from "./Search";
 
 /**
@@ -57,7 +58,9 @@ describe("Search input box", () => {
       { timeout: 30000 }
     );
 
-    const searchInput = screen.getByRole("textbox", { name: /search/i });
+    const searchInput = screen.getByPlaceholderText(
+      /search for a skill or url/i
+    );
     // single tab focuses the searchInput
     expect(searchInput).toBeInTheDocument();
 
@@ -77,7 +80,9 @@ describe("Search input box", () => {
       { timeout: 30000 }
     );
 
-    const searchInput = screen.getByRole("textbox", { name: /search/i });
+    const searchInput = screen.getByPlaceholderText(
+      /search for a skill or url/i
+    );
     // click focuses the searchInput
     expect(searchInput).toBeInTheDocument();
     await user.click(searchInput);
@@ -109,7 +114,9 @@ describe("Search input box", () => {
         (req) => req === `GET ${BASE_URL}/tree`
       ).length;
 
-      const searchInput = screen.getByRole("textbox", { name: /search/i });
+      const searchInput = screen.getByPlaceholderText(
+        /search for a skill or url/i
+      );
 
       const user = userEvent.setup();
 
@@ -158,9 +165,49 @@ describe("Search Page Graph Display", () => {
     expect(lines.length).toBeGreaterThan(0);
   });
 
-  // it("After a user confirms the keyword they're searching for, the resulting nodes are adequately highlighted", () => {
-  //   throw new Error();
-  // });
+  it("After a user confirms the keyword they're searching for, the resulting nodes are adequately highlighted", async () => {
+    renderWithProviders(<Search />);
+
+    const user = userEvent.setup();
+
+    // wait for loading screen to finish
+    await waitFor(
+      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
+      { timeout: 30000 }
+    );
+
+    // Get the search input and type a search term
+    const searchInput = screen.getByPlaceholderText(
+      /search for a skill or url/i
+    );
+    await user.click(searchInput);
+    await user.keyboard("javascript");
+    await user.keyboard("{Enter}");
+
+    // Wait for highlighting to occur after pressing Enter
+    await waitFor(
+      () => {
+        const circles = document.querySelectorAll("circle");
+        // Find all nodes with "javascript" in the name
+        const allJavascriptNodes = Array.from(circles).filter((circle) => {
+          const nodeData = (circle as unknown as { __data__: WBNode }).__data__;
+          return nodeData.name.toLowerCase().includes("javascript");
+        });
+
+        // Assert there are some javascript nodes
+        expect(allJavascriptNodes.length).toBeGreaterThan(0);
+
+        // Assert ALL of them are highlighted
+        allJavascriptNodes.forEach((node) => {
+          const fill = node.getAttribute("fill");
+          expect(
+            fill === ACTIVE_SKILL_FILL || fill === ACTIVE_MODULE_FILL
+          ).toBe(true);
+        });
+      },
+      { timeout: 30000 }
+    );
+  });
 
   // it("If there are no results, the user is informed", () => {
   //   throw new Error();
@@ -205,23 +252,64 @@ describe("Search Page Graph Display", () => {
   // });
 });
 
-// describe("Search Page Text Results Display", () => {
-// 	test("After a user confirms the keyword they're searching for, the results are displayed in text form", () => {
-// 		throw new Error;
-// 	});
+describe("Search Page Text Results Display", () => {
+  it("After a user confirms the keyword they're searching for, the results are displayed in text form", async () => {
+    renderWithProviders(<Search />);
 
-// 	test("If there are no results, the user is informed", () => {
-// 		throw new Error;
-// 	});
+    const user = userEvent.setup();
 
-// 	test("User can click on a skill description to select it", () => {
-// 		throw new Error;
-// 	});
+    // wait for loading screen to finish
+    await waitFor(
+      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
+      { timeout: 30000 }
+    );
 
-// 	test("User can click on a URL result to select it", () => {
-// 		throw new Error;
-// 	});
-// });
+    // Search for "javascript"
+    const searchInput = screen.getByPlaceholderText(
+      /search for a skill or url/i
+    );
+    await user.click(searchInput);
+    await user.keyboard("javascript");
+    await user.keyboard("{Enter}");
+
+    // Wait for results to appear in the card
+    const results = await screen.findAllByRole("button", {
+      name: /javascript/i,
+    });
+    expect(results.length).toBeGreaterThan(0);
+  });
+
+  it("If there are no results, the user is informed", async () => {
+    renderWithProviders(<Search />);
+
+    const user = userEvent.setup();
+
+    // wait for loading screen to finish
+    await waitFor(
+      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
+      { timeout: 30000 }
+    );
+
+    // Search for something that won't match
+    const searchInput = screen.getByPlaceholderText(
+      /search for a skill or url/i
+    );
+    await user.click(searchInput);
+    await user.keyboard("xyzabc123");
+    await user.keyboard("{Enter}");
+
+    // Wait for "no results" message to appear
+    await screen.findByText(/no results found/i);
+  });
+
+  // test("User can click on a skill description to select it", () => {
+  // 	throw new Error;
+  // });
+
+  // test("User can click on a URL result to select it", () => {
+  // 	throw new Error;
+  // });
+});
 
 // describe("Generate Path Button", () => {
 // 	test("Clicking on the button while a Skill or URL is selected leads user to the Branch page", () => {
