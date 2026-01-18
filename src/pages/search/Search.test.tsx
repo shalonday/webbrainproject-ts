@@ -159,8 +159,23 @@ describe("Search Page Text Results Display", () => {
     await screen.findByText(/no results found/i);
   });
 
-  it("provides a visual cue that a search result is selected", () => {
-    throw new Error();
+  it("provides a visual cue that a search result is selected", async () => {
+    renderSearchPage();
+    const user = userEvent.setup();
+    await waitForGraphToLoad();
+
+    await performSearch(user, "javascript");
+
+    const results = await screen.findAllByRole("button", {
+      name: /javascript/i,
+    });
+    expect(results.length).toBeGreaterThan(0);
+
+    const firstResult = results[0];
+    expect(firstResult.className).not.toMatch(/Mui-selected/);
+
+    await user.click(firstResult);
+    expect(firstResult.className).toMatch(/Mui-selected/);
   });
 });
 
@@ -168,13 +183,102 @@ describe("Search Page Text Results Display", () => {
  * Tests for the Generate Path button functionality.
  */
 describe("Generate Path Button", () => {
-  it("Clicking on the button while a search result is selected highlights the learning path to the result", () => {
-    throw new Error();
+  it("is disabled when no search result is selected", async () => {
+    renderSearchPage();
+    const user = userEvent.setup();
+    await waitForGraphToLoad();
+
+    await performSearch(user, "javascript");
+
+    const generateButton = screen.getByRole("button", {
+      name: /generate learning path/i,
+    });
+    expect(generateButton).toBeDisabled();
   });
 
-  it("Clicking on the button when there is nothing selected informs the user to select a search result first", () => {
-    throw new Error();
+  it("becomes enabled when a search result is selected", async () => {
+    renderSearchPage();
+    const user = userEvent.setup();
+    await waitForGraphToLoad();
+
+    await performSearch(user, "javascript");
+
+    const results = await screen.findAllByRole("button", {
+      name: /javascript/i,
+    });
+    await user.click(results[0]);
+
+    const generateButton = screen.getByRole("button", {
+      name: /generate learning path/i,
+    });
+    expect(generateButton).not.toBeDisabled();
   });
+
+  it(
+    "highlights the learning path when clicked with a selected result",
+    { timeout: 20000 },
+    async () => {
+      const requests: string[] = [];
+      /**
+       * Collects each MSW-captured request so the test can assert a fetch occurred.
+       *
+       * @param params - Object containing the request.
+       * @param params.request - The MSW request object.
+       */
+      const handleRequestStart = ({ request }: { request: Request }) => {
+        requests.push(`${request.method} ${request.url}`);
+      };
+
+      server.events.on("request:start", handleRequestStart);
+
+      try {
+        renderSearchPage();
+        const user = userEvent.setup();
+        await waitForGraphToLoad();
+
+        await performSearch(user, "javascript");
+
+        const results = await screen.findAllByRole("button", {
+          name: /javascript/i,
+        });
+        await user.click(results[0]);
+
+        const initialPathRequests = countPathRequests(requests);
+
+        const generateButton = screen.getByRole("button", {
+          name: /generate learning path/i,
+        });
+
+        await user.click(generateButton);
+
+        // Wait for the path fetch to complete
+        await waitFor(
+          () =>
+            expect(countPathRequests(requests)).toBeGreaterThan(
+              initialPathRequests,
+            ),
+          { timeout: 10000 },
+        );
+
+        // Now check for highlights
+        await waitFor(
+          () => {
+            const circles = document.querySelectorAll("circle");
+            const highlightedCircles = Array.from(circles).filter((circle) => {
+              const fill = circle.getAttribute("fill");
+              return fill === ACTIVE_SKILL_FILL || fill === ACTIVE_MODULE_FILL;
+            });
+
+            // At least the start node ("E") and the target should be highlighted
+            expect(highlightedCircles.length).toBeGreaterThanOrEqual(2);
+          },
+          { timeout: 20000 },
+        );
+      } finally {
+        server.events.removeAllListeners("request:start");
+      }
+    },
+  );
 });
 
 // =============================================================================
@@ -290,4 +394,14 @@ function findNodeByType(type: string): SVGCircleElement | undefined {
  */
 function countTreeRequests(requests: string[]): number {
   return requests.filter((req) => req === `GET ${BASE_URL}/tree`).length;
+}
+
+/**
+ * Counts the number of path fetch requests in the given request array.
+ *
+ * @param requests - Array of request strings in format "METHOD URL".
+ * @returns Count of GET requests to /paths endpoint.
+ */
+function countPathRequests(requests: string[]): number {
+  return requests.filter((req) => req.includes(`${BASE_URL}/paths`)).length;
 }
