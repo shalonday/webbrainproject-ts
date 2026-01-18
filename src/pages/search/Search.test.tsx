@@ -1,8 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { RenderOptions } from "@testing-library/react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -15,53 +13,20 @@ import { server } from "../../test/setup";
 import type { WBNode } from "../../types/types";
 import Search from "./Search";
 
-/**
- * Custom render function that wraps components with necessary providers.
- *
- * @param ui - The component to render.
- * @param options - Optional render options.
- * @returns The render result from @testing-library/react.
- */
-function renderWithProviders(
-  ui: ReactElement,
-  options?: Omit<RenderOptions, "wrapper">,
-) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <SkillTreesContextProvider>{ui}</SkillTreesContextProvider>
-    </QueryClientProvider>,
-    options,
-  );
-}
+// =============================================================================
+// ENTRYPOINT: Test Suites for Search Page
+// =============================================================================
 
 /**
  * Tests for the Search input box functionality.
  */
-
 describe("Search input box", () => {
   it("is focused when tab is pressed once", async () => {
-    renderWithProviders(<Search />);
-
+    renderSearchPage();
     const user = userEvent.setup();
+    await waitForGraphToLoad();
 
-    // wait for loading screen to finish
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 },
-    );
-
-    const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i,
-    );
-    // single tab focuses the searchInput
+    const searchInput = getSearchInput();
     expect(searchInput).toBeInTheDocument();
 
     expect(document.body).toHaveFocus();
@@ -70,20 +35,11 @@ describe("Search input box", () => {
   });
 
   it("is focused when clicked", async () => {
-    renderWithProviders(<Search />);
-
+    renderSearchPage();
     const user = userEvent.setup();
+    await waitForGraphToLoad();
 
-    // wait for loading screen to finish
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 },
-    );
-
-    const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i,
-    );
-    // click focuses the searchInput
+    const searchInput = getSearchInput();
     expect(searchInput).toBeInTheDocument();
     await user.click(searchInput);
     expect(searchInput).toHaveFocus();
@@ -91,9 +47,11 @@ describe("Search input box", () => {
 
   it("when focused, pressing Enter filters locally without refetching", async () => {
     const requests: string[] = [];
-
     /**
      * Collects each MSW-captured request so the test can assert a fetch occurred.
+     *
+     * @param params - Object containing the request.
+     * @param params.request - The MSW request object.
      */
     const handleRequestStart = ({ request }: { request: Request }) => {
       requests.push(`${request.method} ${request.url}`);
@@ -102,38 +60,16 @@ describe("Search input box", () => {
     server.events.on("request:start", handleRequestStart);
 
     try {
-      renderWithProviders(<Search />);
+      renderSearchPage();
+      await waitForGraphToLoad();
 
-      // wait for loading screen to finish
-      await waitFor(
-        () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-        { timeout: 30000 },
-      );
-
-      const initialTreeRequests = requests.filter(
-        (req) => req === `GET ${BASE_URL}/tree`,
-      ).length;
-
-      const searchInput = screen.getByPlaceholderText(
-        /search for a skill or url/i,
-      );
-
+      const initialTreeRequests = countTreeRequests(requests);
       const user = userEvent.setup();
 
-      // focus the search input
-      await user.click(searchInput);
+      await performSearch(user, "javascript");
 
-      // type "javascript" then press Enter
-      expect(searchInput).toHaveFocus();
-      await user.keyboard("javascript");
-      await user.keyboard("{Enter}");
-
-      // pressing Enter should not trigger another fetch; it filters locally
       await waitFor(
-        () =>
-          expect(
-            requests.filter((req) => req === `GET ${BASE_URL}/tree`).length,
-          ).toBe(initialTreeRequests),
+        () => expect(countTreeRequests(requests)).toBe(initialTreeRequests),
         { timeout: 30000 },
       );
     } finally {
@@ -142,63 +78,30 @@ describe("Search input box", () => {
   }, 60000);
 });
 
+/**
+ * Tests for graph visualization behavior.
+ */
 describe("Search Page Graph Display", () => {
   it("loads and displays the universal tree when entering the search page", async () => {
-    renderWithProviders(<Search />);
+    renderSearchPage();
+    await waitForGraphToLoad();
 
-    // wait for loading screen to finish
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 },
-    );
-
-    // Check that SVG elements are rendered (indicating the graph is displayed)
-    const svgElement = document.querySelector("svg");
-    expect(svgElement).toBeInTheDocument();
-
-    // Check that graph nodes (circles) are rendered
-    const circles = document.querySelectorAll("circle");
-    expect(circles.length).toBeGreaterThan(0);
-
-    // Check that graph links (lines) are rendered
-    const lines = document.querySelectorAll("line");
-    expect(lines.length).toBeGreaterThan(0);
+    assertGraphIsRendered();
   });
 
   it("After a user confirms the keyword they're searching for, the resulting nodes are adequately highlighted", async () => {
-    renderWithProviders(<Search />);
-
+    renderSearchPage();
     const user = userEvent.setup();
+    await waitForGraphToLoad();
 
-    // wait for loading screen to finish
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 },
-    );
+    await performSearch(user, "javascript");
 
-    // Get the search input and type a search term
-    const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i,
-    );
-    await user.click(searchInput);
-    await user.keyboard("javascript");
-    await user.keyboard("{Enter}");
-
-    // Wait for highlighting to occur after pressing Enter
     await waitFor(
       () => {
-        const circles = document.querySelectorAll("circle");
-        // Find all nodes with "javascript" in the name
-        const allJavascriptNodes = Array.from(circles).filter((circle) => {
-          const nodeData = (circle as unknown as { __data__: WBNode }).__data__;
-          return nodeData.name.toLowerCase().includes("javascript");
-        });
+        const matchingNodes = findNodesWithText("javascript");
+        expect(matchingNodes.length).toBeGreaterThan(0);
 
-        // Assert there are some javascript nodes
-        expect(allJavascriptNodes.length).toBeGreaterThan(0);
-
-        // Assert ALL of them are highlighted
-        allJavascriptNodes.forEach((node) => {
+        matchingNodes.forEach((node) => {
           const fill = node.getAttribute("fill");
           expect(
             fill === ACTIVE_SKILL_FILL || fill === ACTIVE_MODULE_FILL,
@@ -209,38 +112,19 @@ describe("Search Page Graph Display", () => {
     );
   });
 
-  // it("If there are no results, the user is informed", () => {
-  //   throw new Error();
-  // });
-
   it("highlights a clicked node", async () => {
-    renderWithProviders(<Search />);
+    renderSearchPage();
+    await waitForGraphToLoad();
+    assertGraphIsRendered();
 
-    // render the universal tree first
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 },
-    );
-    const svgElement = document.querySelector("svg");
-    expect(svgElement).toBeInTheDocument();
-    const circles = document.querySelectorAll("circle");
-    expect(circles.length).toBeGreaterThan(0);
-    const lines = document.querySelectorAll("line");
-    expect(lines.length).toBeGreaterThan(0);
-
-    // click on a skill node
     const user = userEvent.setup();
+    const circles = document.querySelectorAll("circle");
     const firstCircle = circles[0];
     await user.click(firstCircle);
 
-    // check that the skill node is highlighted
     expect(firstCircle).toHaveAttribute("fill", ACTIVE_SKILL_FILL);
 
-    // click on a URL node
-    const urlNode = Array.from(circles).find(
-      (circle) => circle.getAttribute("type") === "url",
-    );
-    // check that the URL node is highlighted
+    const urlNode = findNodeByType("url");
     if (urlNode) {
       await user.click(urlNode);
       expect(urlNode).toHaveAttribute("fill", ACTIVE_MODULE_FILL);
@@ -248,27 +132,17 @@ describe("Search Page Graph Display", () => {
   });
 });
 
+/**
+ * Tests for text-based search results display.
+ */
 describe("Search Page Text Results Display", () => {
   it("After a user confirms the keyword they're searching for, the results are displayed in text form", async () => {
-    renderWithProviders(<Search />);
-
+    renderSearchPage();
     const user = userEvent.setup();
+    await waitForGraphToLoad();
 
-    // wait for loading screen to finish
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 },
-    );
+    await performSearch(user, "javascript");
 
-    // Search for "javascript"
-    const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i,
-    );
-    await user.click(searchInput);
-    await user.keyboard("javascript");
-    await user.keyboard("{Enter}");
-
-    // Wait for results to appear in the card
     const results = await screen.findAllByRole("button", {
       name: /javascript/i,
     });
@@ -276,25 +150,12 @@ describe("Search Page Text Results Display", () => {
   });
 
   it("If there are no results, the user is informed", async () => {
-    renderWithProviders(<Search />);
-
+    renderSearchPage();
     const user = userEvent.setup();
+    await waitForGraphToLoad();
 
-    // wait for loading screen to finish
-    await waitFor(
-      () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 },
-    );
+    await performSearch(user, "xyzabc123");
 
-    // Search for something that won't match
-    const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i,
-    );
-    await user.click(searchInput);
-    await user.keyboard("xyzabc123");
-    await user.keyboard("{Enter}");
-
-    // Wait for "no results" message to appear
     await screen.findByText(/no results found/i);
   });
 
@@ -303,6 +164,9 @@ describe("Search Page Text Results Display", () => {
   });
 });
 
+/**
+ * Tests for the Generate Path button functionality.
+ */
 describe("Generate Path Button", () => {
   it("Clicking on the button while a search result is selected highlights the learning path to the result", () => {
     throw new Error();
@@ -312,3 +176,118 @@ describe("Generate Path Button", () => {
     throw new Error();
   });
 });
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Renders the Search page component with all necessary providers.
+ */
+function renderSearchPage(): void {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <SkillTreesContextProvider>
+        <Search />
+      </SkillTreesContextProvider>
+    </QueryClientProvider>,
+  );
+}
+
+/**
+ * Waits for the loading spinner to disappear, indicating the graph has loaded.
+ *
+ * @throws {Error} If the graph doesn't load within the timeout period.
+ */
+async function waitForGraphToLoad(): Promise<void> {
+  await waitFor(
+    () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
+    { timeout: 30000 },
+  );
+}
+
+/**
+ * Gets the search input element from the page.
+ *
+ * @returns The search input HTMLElement.
+ */
+function getSearchInput(): HTMLElement {
+  return screen.getByPlaceholderText(/search for a skill or url/i);
+}
+
+/**
+ * Performs a complete search operation: click input, type search term, press Enter.
+ *
+ * @param user - The userEvent instance for interaction.
+ * @param searchTerm - The term to search for.
+ */
+async function performSearch(
+  user: ReturnType<typeof userEvent.setup>,
+  searchTerm: string,
+): Promise<void> {
+  const searchInput = getSearchInput();
+  await user.click(searchInput);
+  expect(searchInput).toHaveFocus();
+  await user.keyboard(searchTerm);
+  await user.keyboard("{Enter}");
+}
+
+/**
+ * Asserts that the D3 graph is properly rendered in the DOM.
+ * Checks for SVG element, circle nodes, and line edges.
+ */
+function assertGraphIsRendered(): void {
+  const svgElement = document.querySelector("svg");
+  expect(svgElement).toBeInTheDocument();
+
+  const circles = document.querySelectorAll("circle");
+  expect(circles.length).toBeGreaterThan(0);
+
+  const lines = document.querySelectorAll("line");
+  expect(lines.length).toBeGreaterThan(0);
+}
+
+/**
+ * Finds all graph nodes that contain the specified text in their name (case-insensitive).
+ *
+ * @param text - The text to search for in node names.
+ * @returns Array of SVG circle elements that match.
+ */
+function findNodesWithText(text: string): SVGCircleElement[] {
+  const circles = document.querySelectorAll("circle");
+  return Array.from(circles).filter((circle) => {
+    const nodeData = (circle as unknown as { __data__: WBNode }).__data__;
+    return nodeData.name.toLowerCase().includes(text.toLowerCase());
+  }) as SVGCircleElement[];
+}
+
+/**
+ * Finds the first graph node of the specified type.
+ *
+ * @param type - The node type to search for (e.g., "skill" or "url").
+ * @returns The first matching SVG circle element, or undefined if none found.
+ */
+function findNodeByType(type: string): SVGCircleElement | undefined {
+  const circles = document.querySelectorAll("circle");
+  return Array.from(circles).find(
+    (circle) => circle.getAttribute("type") === type,
+  ) as SVGCircleElement | undefined;
+}
+
+/**
+ * Counts the number of tree fetch requests in the given request array.
+ *
+ * @param requests - Array of request strings in format "METHOD URL".
+ * @returns Count of GET requests to /tree endpoint.
+ */
+function countTreeRequests(requests: string[]): number {
+  return requests.filter((req) => req === `GET ${BASE_URL}/tree`).length;
+}

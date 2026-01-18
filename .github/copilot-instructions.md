@@ -40,6 +40,7 @@ Note that a URL can have multiple prerequisite skills, and multiple objective sk
 - **React**: Functional components with hooks, JSX transform
 - **Imports**: ES modules with verbatim syntax
 - **Linting**: Flat ESLint config with React hooks, refresh, accessibility, JSDoc, and import sorting plugins. Enforces camelCase variables, camelCase/PascalCase functions (for components), PascalCase types, semicolons (via @stylistic), no console logs, alphabetical imports, JSX keys, no prop mutation, and JSDoc on exports (warn)
+- **Readability**: Prioritize human-readable code and tests. Make functions modular and encapsulated with comprehensive JSDoc comments. Have clear entrypoints for functionality, and clearly distinguish between primary functions and helper functions through naming, organization, and documentation
 
 ## Key Files
 
