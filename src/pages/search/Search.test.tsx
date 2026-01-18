@@ -24,7 +24,7 @@ import Search from "./Search";
  */
 function renderWithProviders(
   ui: ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
+  options?: Omit<RenderOptions, "wrapper">,
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -38,7 +38,7 @@ function renderWithProviders(
     <QueryClientProvider client={queryClient}>
       <SkillTreesContextProvider>{ui}</SkillTreesContextProvider>
     </QueryClientProvider>,
-    options
+    options,
   );
 }
 
@@ -55,11 +55,11 @@ describe("Search input box", () => {
     // wait for loading screen to finish
     await waitFor(
       () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
 
     const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i
+      /search for a skill or url/i,
     );
     // single tab focuses the searchInput
     expect(searchInput).toBeInTheDocument();
@@ -77,11 +77,11 @@ describe("Search input box", () => {
     // wait for loading screen to finish
     await waitFor(
       () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
 
     const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i
+      /search for a skill or url/i,
     );
     // click focuses the searchInput
     expect(searchInput).toBeInTheDocument();
@@ -107,15 +107,15 @@ describe("Search input box", () => {
       // wait for loading screen to finish
       await waitFor(
         () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-        { timeout: 30000 }
+        { timeout: 30000 },
       );
 
       const initialTreeRequests = requests.filter(
-        (req) => req === `GET ${BASE_URL}/tree`
+        (req) => req === `GET ${BASE_URL}/tree`,
       ).length;
 
       const searchInput = screen.getByPlaceholderText(
-        /search for a skill or url/i
+        /search for a skill or url/i,
       );
 
       const user = userEvent.setup();
@@ -132,9 +132,9 @@ describe("Search input box", () => {
       await waitFor(
         () =>
           expect(
-            requests.filter((req) => req === `GET ${BASE_URL}/tree`).length
+            requests.filter((req) => req === `GET ${BASE_URL}/tree`).length,
           ).toBe(initialTreeRequests),
-        { timeout: 30000 }
+        { timeout: 30000 },
       );
     } finally {
       server.events.removeAllListeners("request:start");
@@ -149,7 +149,7 @@ describe("Search Page Graph Display", () => {
     // wait for loading screen to finish
     await waitFor(
       () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
 
     // Check that SVG elements are rendered (indicating the graph is displayed)
@@ -173,12 +173,12 @@ describe("Search Page Graph Display", () => {
     // wait for loading screen to finish
     await waitFor(
       () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
 
     // Get the search input and type a search term
     const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i
+      /search for a skill or url/i,
     );
     await user.click(searchInput);
     await user.keyboard("javascript");
@@ -201,11 +201,11 @@ describe("Search Page Graph Display", () => {
         allJavascriptNodes.forEach((node) => {
           const fill = node.getAttribute("fill");
           expect(
-            fill === ACTIVE_SKILL_FILL || fill === ACTIVE_MODULE_FILL
+            fill === ACTIVE_SKILL_FILL || fill === ACTIVE_MODULE_FILL,
           ).toBe(true);
         });
       },
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
   });
 
@@ -219,7 +219,7 @@ describe("Search Page Graph Display", () => {
     // render the universal tree first
     await waitFor(
       () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
     const svgElement = document.querySelector("svg");
     expect(svgElement).toBeInTheDocument();
@@ -238,7 +238,7 @@ describe("Search Page Graph Display", () => {
 
     // click on a URL node
     const urlNode = Array.from(circles).find(
-      (circle) => circle.getAttribute("type") === "url"
+      (circle) => circle.getAttribute("type") === "url",
     );
     // check that the URL node is highlighted
     if (urlNode) {
@@ -246,10 +246,6 @@ describe("Search Page Graph Display", () => {
       expect(urlNode).toHaveAttribute("fill", ACTIVE_MODULE_FILL);
     }
   });
-
-  // it("User can double click a URL node to select it", () => {
-  //   throw new Error();
-  // });
 });
 
 describe("Search Page Text Results Display", () => {
@@ -261,12 +257,12 @@ describe("Search Page Text Results Display", () => {
     // wait for loading screen to finish
     await waitFor(
       () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
 
     // Search for "javascript"
     const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i
+      /search for a skill or url/i,
     );
     await user.click(searchInput);
     await user.keyboard("javascript");
@@ -287,12 +283,12 @@ describe("Search Page Text Results Display", () => {
     // wait for loading screen to finish
     await waitFor(
       () => expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-      { timeout: 30000 }
+      { timeout: 30000 },
     );
 
     // Search for something that won't match
     const searchInput = screen.getByPlaceholderText(
-      /search for a skill or url/i
+      /search for a skill or url/i,
     );
     await user.click(searchInput);
     await user.keyboard("xyzabc123");
@@ -302,21 +298,17 @@ describe("Search Page Text Results Display", () => {
     await screen.findByText(/no results found/i);
   });
 
-  // test("User can click on a skill description to select it", () => {
-  // 	throw new Error;
-  // });
-
-  // test("User can click on a URL result to select it", () => {
-  // 	throw new Error;
-  // });
+  it("provides a visual cue that a search result is selected", () => {
+    throw new Error();
+  });
 });
 
-// describe("Generate Path Button", () => {
-// 	test("Clicking on the button while a Skill or URL is selected leads user to the Branch page", () => {
-// 		throw new Error;
-// 	});
+describe("Generate Path Button", () => {
+  it("Clicking on the button while a search result is selected highlights the learning path to the result", () => {
+    throw new Error();
+  });
 
-// 	test("Clicking on the button when there is nothing selected informs the user to select a Skill or URL first", () => {
-// 		throw new Error;
-// 	});
-// });
+  it("Clicking on the button when there is nothing selected informs the user to select a search result first", () => {
+    throw new Error();
+  });
+});
