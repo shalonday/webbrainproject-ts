@@ -1,6 +1,7 @@
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Box,
+  Button,
   Card,
   CircularProgress,
   InputAdornment,
@@ -14,13 +15,14 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { BASE_URL } from "../../common-constants";
 import { useSkillTreesContext } from "../../contexts/SkillTreesContext.tsx";
 import type { Tree, WBNode } from "../../types/types";
 import SearchPageChart from "./SearchPageChart.tsx";
 
 /**
  * Search page component that allows users to search through the universal tree of skills and URLs.
- * Fetches data on mount and provides a search interface.
+ * Fetches data on mount and provides a search interface with path generation capability.
  *
  * @returns {JSX.Element} The rendered search page.
  */
@@ -29,6 +31,8 @@ function Search(): ReactNode {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<WBNode[]>([]);
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+  const [pathTree, setPathTree] = useState<Tree | null>(null);
 
   // Sample recommended nodes (you can replace this with actual logic)
   const recommendedNodes: WBNode[] = universalTree?.nodes.slice(0, 5) || [];
@@ -73,6 +77,8 @@ function Search(): ReactNode {
     const results = searchNodes(term, universalTree);
     setSearchResults(results);
     setIsSearchActive(true);
+    setSelectedResultId(null);
+    setPathTree(null);
   };
 
   /**
@@ -84,6 +90,39 @@ function Search(): ReactNode {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter") {
       handleSearch(searchTerm);
+    }
+  };
+
+  /**
+   * Handles generating a learning path from skill node "E" to the selected result.
+   * Fetches the path from the backend and highlights all nodes along the path.
+   */
+  const handleGeneratePath = async () => {
+    if (!selectedResultId) {
+      return;
+    }
+
+    // Clear existing highlights before fetching path
+    setSearchResults([]);
+    setPathTree(null);
+
+    try {
+      const startNodeId = "97838643-4e9b-434f-8985-89dd23408647"; // TEMPORARY hardcoded start node ID of "E"
+      const response = await fetch(
+        `${BASE_URL}/paths/${startNodeId}/${selectedResultId}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch path: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const pathTree: Tree = { nodes: data.nodes, links: data.links };
+      setPathTree(pathTree);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Error generating path:", error);
+      setPathTree(null);
     }
   };
 
@@ -107,6 +146,7 @@ function Search(): ReactNode {
       {/* Background Chart */}
       {universalTree && (
         <SearchPageChart
+          pathTree={pathTree}
           universalTree={universalTree}
           highlightedNodeIds={searchResults.map((node) => node.id)}
         />
@@ -194,6 +234,11 @@ function Search(): ReactNode {
                 {searchResults.map((node) => (
                   <ListItem key={node.id} disablePadding>
                     <ListItemButton
+                      selected={selectedResultId === node.id}
+                      onClick={() => {
+                        setSelectedResultId(node.id);
+                        setPathTree(null);
+                      }}
                       sx={{
                         borderRadius: 2,
                         mb: 0.5,
@@ -259,6 +304,26 @@ function Search(): ReactNode {
             </>
           )}
         </Box>
+
+        {/* Generate Path Button */}
+        {isSearchActive && searchResults.length > 0 && (
+          <Box sx={{ px: 2, pb: 2 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              disabled={!selectedResultId}
+              onClick={handleGeneratePath}
+              sx={{
+                borderRadius: 2,
+                py: 1.5,
+                textTransform: "none",
+                fontSize: "1rem",
+              }}
+            >
+              Generate Learning Path
+            </Button>
+          </Box>
+        )}
       </Card>
     </Box>
   );
