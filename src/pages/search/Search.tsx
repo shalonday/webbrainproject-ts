@@ -126,6 +126,17 @@ function Search(): ReactNode {
     }
   };
 
+  /**
+   * Handles clicking on a path node card.
+   * Currently logs the node properties as a placeholder.
+   *
+   * @param {WBNode} node - The node that was clicked.
+   */
+  const handlePathNodeClick = (node: WBNode) => {
+    // eslint-disable-next-line no-console
+    console.log("Path node clicked:", node);
+  };
+
   if (isLoadingQuery) {
     return (
       <Box
@@ -220,7 +231,38 @@ function Search(): ReactNode {
 
         {/* Results or Recommended Section */}
         <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
-          {isSearchActive ? (
+          {pathTree ? (
+            // Learning Path Display
+            <>
+              <Typography
+                variant="subtitle2"
+                sx={{ px: 1, py: 1, color: "text.secondary" }}
+              >
+                Learning Path
+              </Typography>
+              <List>
+                {pathTree.nodes.map((node) => (
+                  <ListItem key={node.id} disablePadding>
+                    <ListItemButton
+                      onClick={() => handlePathNodeClick(node)}
+                      sx={{
+                        borderRadius: 2,
+                        mb: 0.5,
+                      }}
+                    >
+                      <ListItemText
+                        primary={node.name}
+                        secondary={`Type: ${node.type}`}
+                        primaryTypographyProps={{
+                          fontWeight: 500,
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          ) : isSearchActive ? (
             // Search Results
             <>
               <Typography

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   ACTIVE_MODULE_FILL,
@@ -277,6 +277,217 @@ describe("Generate Path Button", () => {
       } finally {
         server.events.removeAllListeners("request:start");
       }
+    },
+  );
+});
+
+/**
+ * Tests for the learning path display after path generation.
+ */
+describe("Learning Path Display", () => {
+  it(
+    "displays path nodes in the text card after generating a path",
+    { timeout: 20000 },
+    async () => {
+      const requests: string[] = [];
+      /**
+       * Collects each MSW-captured request so the test can assert a fetch occurred.
+       *
+       * @param params - Object containing the request.
+       * @param params.request - The MSW request object.
+       */
+      const handleRequestStart = ({ request }: { request: Request }) => {
+        requests.push(`${request.method} ${request.url}`);
+      };
+
+      server.events.on("request:start", handleRequestStart);
+
+      try {
+        renderSearchPage();
+        const user = userEvent.setup();
+        await waitForGraphToLoad();
+
+        await performSearch(user, "javascript");
+
+        const results = await screen.findAllByRole("button", {
+          name: /javascript/i,
+        });
+        await user.click(results[0]);
+
+        const generateButton = screen.getByRole("button", {
+          name: /generate learning path/i,
+        });
+
+        await user.click(generateButton);
+
+        // Wait for the path to be displayed
+        await waitFor(
+          () => {
+            const pathHeading = screen.queryByText("Learning Path");
+            expect(pathHeading).toBeInTheDocument();
+          },
+          { timeout: 10000 },
+        );
+
+        // Verify path nodes are displayed
+        const pathNodes = screen.getAllByRole("button");
+        const pathNodeButtons = pathNodes.filter((button) => {
+          const text = button.textContent || "";
+          return text.includes("Type:");
+        });
+
+        // Should have at least 3 nodes (start, url, target)
+        expect(pathNodeButtons.length).toBeGreaterThanOrEqual(3);
+      } finally {
+        server.events.removeAllListeners("request:start");
+      }
+    },
+  );
+
+  it(
+    "displays path nodes in the correct order",
+    { timeout: 20000 },
+    async () => {
+      renderSearchPage();
+      const user = userEvent.setup();
+      await waitForGraphToLoad();
+
+      await performSearch(user, "javascript");
+
+      const results = await screen.findAllByRole("button", {
+        name: /javascript/i,
+      });
+      await user.click(results[0]);
+
+      const generateButton = screen.getByRole("button", {
+        name: /generate learning path/i,
+      });
+
+      await user.click(generateButton);
+
+      // Wait for learning path heading
+      await waitFor(
+        () => {
+          expect(screen.queryByText("Learning Path")).toBeInTheDocument();
+        },
+        { timeout: 10000 },
+      );
+
+      // Get all list items and find the ones with node data
+      const listItems = screen.getAllByRole("button");
+      const pathNodeButtons = listItems.filter((button) => {
+        const text = button.textContent || "";
+        return text.includes("Type:");
+      });
+
+      // Verify the order matches the mock data: E -> URL -> JavaScript
+      expect(pathNodeButtons.length).toBeGreaterThanOrEqual(3);
+
+      // First node should be "E"
+      expect(pathNodeButtons[0]?.textContent).toContain("E");
+
+      // Last node should be "JavaScript"
+      expect(
+        pathNodeButtons[pathNodeButtons.length - 1]?.textContent,
+      ).toContain("JavaScript");
+    },
+  );
+
+  it(
+    "path node buttons are clickable and log node information",
+    { timeout: 20000 },
+    async () => {
+      const consoleSpy = vi.spyOn(console, "log");
+
+      renderSearchPage();
+      const user = userEvent.setup();
+      await waitForGraphToLoad();
+
+      await performSearch(user, "javascript");
+
+      const results = await screen.findAllByRole("button", {
+        name: /javascript/i,
+      });
+      await user.click(results[0]);
+
+      const generateButton = screen.getByRole("button", {
+        name: /generate learning path/i,
+      });
+
+      await user.click(generateButton);
+
+      // Wait for learning path heading
+      await waitFor(
+        () => {
+          expect(screen.queryByText("Learning Path")).toBeInTheDocument();
+        },
+        { timeout: 10000 },
+      );
+
+      // Get all list items and find the ones with node data
+      const listItems = screen.getAllByRole("button");
+      const pathNodeButtons = listItems.filter((button) => {
+        const text = button.textContent || "";
+        return text.includes("Type:");
+      });
+
+      // Click the first path node
+      if (pathNodeButtons[0]) {
+        await user.click(pathNodeButtons[0]);
+
+        // Verify that console.log was called with the node data
+        await waitFor(() => {
+          expect(consoleSpy).toHaveBeenCalledWith(
+            "Path node clicked:",
+            expect.objectContaining({
+              id: expect.any(String),
+              type: expect.stringMatching(/skill|url/),
+              name: expect.any(String),
+            }),
+          );
+        });
+      }
+
+      consoleSpy.mockRestore();
+    },
+  );
+
+  it(
+    "replaces search results with path display when path is generated",
+    { timeout: 20000 },
+    async () => {
+      renderSearchPage();
+      const user = userEvent.setup();
+      await waitForGraphToLoad();
+
+      await performSearch(user, "javascript");
+
+      // Verify search results are showing
+      await waitFor(() => {
+        expect(screen.queryByText(/result/i)).toBeInTheDocument();
+      });
+
+      const results = await screen.findAllByRole("button", {
+        name: /javascript/i,
+      });
+      await user.click(results[0]);
+
+      const generateButton = screen.getByRole("button", {
+        name: /generate learning path/i,
+      });
+
+      await user.click(generateButton);
+
+      // Wait for learning path to appear
+      await waitFor(
+        () => {
+          expect(screen.queryByText("Learning Path")).toBeInTheDocument();
+        },
+        { timeout: 10000 },
+      );
+
+      // Verify the "results found" text is gone
+      expect(screen.queryByText(/result.*found/i)).not.toBeInTheDocument();
     },
   );
 });
