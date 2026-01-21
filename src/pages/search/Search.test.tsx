@@ -10,7 +10,7 @@ import {
 } from "../../common-constants";
 import { SkillTreesContextProvider } from "../../contexts/SkillTreesContext";
 import { server } from "../../test/setup";
-import type { WBNode } from "../../types/types";
+import type { Link, WBNode } from "../../types/types";
 import Search from "./Search";
 
 // =============================================================================
@@ -488,6 +488,69 @@ describe("Learning Path Display", () => {
 
       // Verify the "results found" text is gone
       expect(screen.queryByText(/result.*found/i)).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    "dims non-path nodes and links while keeping path fully highlighted",
+    { timeout: 20000 },
+    async () => {
+      renderSearchPage();
+      const user = userEvent.setup();
+      await waitForGraphToLoad();
+
+      await performSearch(user, "javascript");
+
+      const results = await screen.findAllByRole("button", {
+        name: /javascript/i,
+      });
+      await user.click(results[0]);
+
+      const generateButton = screen.getByRole("button", {
+        name: /generate learning path/i,
+      });
+
+      await user.click(generateButton);
+
+      // Wait for path to render and styles to apply
+      await waitFor(
+        () => {
+          expect(screen.queryByText("Learning Path")).toBeInTheDocument();
+        },
+        { timeout: 10000 },
+      );
+
+      // Validate node opacity: React (non-path) should be dimmed, JavaScript (path) stays vivid
+      const circles = Array.from(document.querySelectorAll("circle"));
+      const reactNode = circles.find(
+        (circle) =>
+          (circle as unknown as { __data__?: WBNode }).__data__?.name ===
+          "React",
+      );
+      const javascriptNode = circles.find(
+        (circle) =>
+          (circle as unknown as { __data__?: WBNode }).__data__?.name ===
+          "JavaScript",
+      );
+
+      expect(reactNode).toBeTruthy();
+      expect(reactNode?.getAttribute("opacity")).toBe("0.25");
+      expect(javascriptNode?.getAttribute("opacity")).toBe("1");
+
+      // Validate link opacity: non-path link is dimmed, path link remains emphasized
+      const lines = Array.from(document.querySelectorAll("line"));
+      const nonPathLink = lines.find(
+        (line) => (line as unknown as { __data__?: Link }).__data__?.id === "2",
+      );
+      const pathLink = lines.find(
+        (line) =>
+          (line as unknown as { __data__?: Link }).__data__?.id ===
+          "link-e-to-js",
+      );
+
+      expect(nonPathLink).toBeTruthy();
+      expect(nonPathLink?.getAttribute("opacity")).toBe("0.2");
+      expect(pathLink?.getAttribute("opacity")).toBe("1");
     },
   );
 });

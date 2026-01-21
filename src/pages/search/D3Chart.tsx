@@ -60,6 +60,31 @@ function getNodeFill(node: SimulatedWBNode, selectedIds: string[]): string {
 }
 
 /**
+ * Determines whether a node is part of the current learning path.
+ *
+ * @param node - The simulated node to check.
+ * @param pathTree - The current learning path tree.
+ * @returns True when the node exists in the path tree.
+ */
+function isNodeInPath(node: SimulatedWBNode, pathTree: Tree | null): boolean {
+  if (!pathTree || pathTree?.nodes?.length === 0) return false;
+  return pathTree.nodes.some((pathNode) => pathNode.id === node.id);
+}
+
+/**
+ * Computes opacity for a node based on path membership.
+ * Nodes in the path stay fully opaque; others are dimmed.
+ *
+ * @param node - The simulated node to style.
+ * @param pathTree - The current learning path tree.
+ * @returns Opacity value between 0 and 1.
+ */
+function getNodeOpacity(node: SimulatedWBNode, pathTree: Tree | null): number {
+  if (!pathTree || pathTree?.nodes?.length === 0) return 1;
+  return isNodeInPath(node, pathTree) ? 1 : 0.25;
+}
+
+/**
  * Determines if a link is part of the path based on the path tree.
  *
  * @param link - The link to check.
@@ -76,6 +101,19 @@ function isLinkInPath(link: LinkDatum, pathTree: Tree | null): boolean {
   return pathTree?.links?.some(
     (pathLink) => pathLink.source === sourceId && pathLink.target === targetId,
   );
+}
+
+/**
+ * Computes opacity for a link based on path membership.
+ * Links in the path stay fully opaque; others are dimmed.
+ *
+ * @param link - The link datum to style.
+ * @param pathTree - The current learning path tree.
+ * @returns Opacity value between 0 and 1.
+ */
+function getLinkOpacity(link: LinkDatum, pathTree: Tree | null): number {
+  if (!pathTree || pathTree?.links?.length === 0) return 1;
+  return isLinkInPath(link, pathTree) ? 1 : 0.2;
 }
 
 interface D3ChartProps {
@@ -175,29 +213,33 @@ function renderLinks(
     .attr("stroke", (d) =>
       isLinkInPath(d, pathTree) ? ACTIVE_LINK_COLOR : INACTIVE_LINK_COLOR,
     )
+    .attr("opacity", (d) => getLinkOpacity(d, pathTree))
     .attr("stroke-width", (d) => (isLinkInPath(d, pathTree) ? 3 : 1.5))
     .attr("marker-end", (d) =>
       isLinkInPath(d, pathTree) ? "url(#arrow-active)" : "url(#arrow)",
     );
 }
 /**
- * Updates node fill colors based on selection state.
- * Called when selectedNodeIds changes without recreating the simulation.
+ * Updates node fill and opacity based on selection state and path membership.
+ * Called when selection or path changes without recreating the simulation.
  *
  * @param gNodeRef - Reference to the SVG group containing node elements.
  * @param selectedNodeIds - Array of selected node IDs for styling.
+ * @param pathTree - The current learning path tree (used to dim non-path nodes).
  */
 function updateNodeColors(
   gNodeRef: React.RefObject<SVGGElement | null>,
   selectedNodeIds: string[],
+  pathTree: Tree | null,
 ) {
   d3.select(gNodeRef.current)
     .selectAll<SVGCircleElement, SimulatedWBNode>("circle")
-    .attr("fill", (d) => getNodeFill(d, selectedNodeIds));
+    .attr("fill", (d) => getNodeFill(d, selectedNodeIds))
+    .attr("opacity", (d) => getNodeOpacity(d, pathTree));
 }
 
 /**
- * Updates link stroke colors based on path state.
+ * Updates link stroke color, width, marker, and opacity based on path state.
  * Called when pathTree changes without recreating the simulation.
  *
  * @param gLinkRef - Reference to the SVG group containing link elements.
@@ -212,6 +254,7 @@ function updateLinkColors(
     .attr("stroke", (d) =>
       isLinkInPath(d, pathTree) ? ACTIVE_LINK_COLOR : INACTIVE_LINK_COLOR,
     )
+    .attr("opacity", (d) => getLinkOpacity(d, pathTree))
     .attr("stroke-width", (d) => (isLinkInPath(d, pathTree) ? 3 : 1.5))
     .attr("marker-end", (d) =>
       isLinkInPath(d, pathTree) ? "url(#arrow-active)" : "url(#arrow)",
@@ -236,6 +279,7 @@ function renderNodes(
     SimulatedWBNode,
     d3.SimulationLinkDatum<SimulatedWBNode>
   >,
+  pathTree: Tree | null,
 ): NodeSelection {
   return d3
     .select(gNodeRef.current)
@@ -245,6 +289,7 @@ function renderNodes(
       d.type === "skill" || d.type === "url" ? RADIUS : MINOR_RADIUS,
     )
     .attr("fill", (d) => getNodeFill(d, selectedNodeIds))
+    .attr("opacity", (d) => getNodeOpacity(d, pathTree))
     .attr("stroke", "black")
     .call((selection) => {
       // Skip drag hookup in test environments or when DOM is unavailable
@@ -362,6 +407,7 @@ function ForceGraph(
     createSimulation(nodes, links, viewBoxWidth, viewBoxHeight, () =>
       updatePositions(linkSelection, nodeSelection),
     ),
+    pathTree,
   );
 
   setupZoom(svgRef, gNodeAndLinkRef);
@@ -394,6 +440,7 @@ export default function D3Chart({
   const svgRef = useRef<SVGSVGElement>(null);
   const gNodeAndLinkRef = useRef<SVGGElement>(null);
   const svgContainerRef = useRef<HTMLDivElement>(null);
+  const isPathActive = Boolean(pathTree && pathTree.nodes?.length);
 
   // Create simulation only when tree data changes
   useEffect(() => {
@@ -418,16 +465,24 @@ export default function D3Chart({
 
   // Update node colors when selection changes without recreating simulation
   useEffect(() => {
-    updateNodeColors(gNodeRef, selectedNodeIds);
-  }, [selectedNodeIds]);
+    updateNodeColors(gNodeRef, selectedNodeIds, pathTree);
+  }, [selectedNodeIds, pathTree]);
 
   // Update link colors when path changes without recreating simulation
   useEffect(() => {
     updateLinkColors(gLinkRef, pathTree);
-  }, [pathTree]);
+    updateNodeColors(gNodeRef, selectedNodeIds, pathTree);
+  }, [pathTree, selectedNodeIds]);
 
   return (
-    <div ref={svgContainerRef} style={{ height: "85vh", width: "100vw" }}>
+    <div
+      ref={svgContainerRef}
+      style={{
+        height: "85vh",
+        width: "100vw",
+        backgroundColor: isPathActive ? "#f5f5f5" : "transparent",
+      }}
+    >
       <svg
         ref={svgRef}
         style={{ height: "100%", width: "100%" }}
