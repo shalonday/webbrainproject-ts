@@ -1,9 +1,12 @@
 import { useState } from "react";
 
-import type { Tree } from "../../types/types";
+import type { Tree, WBNode } from "../../types/types";
 import D3Chart from "./D3Chart";
 
 interface SearchPageChartProps {
+  currentNode?: WBNode | null;
+  doneLinkIds?: string[];
+  doneNodeIds?: string[];
   highlightedNodeIds?: string[];
   pathTree?: Tree | null;
   universalTree: Tree;
@@ -17,12 +20,18 @@ interface SearchPageChartProps {
  * @param props.universalTree - The complete graph of all nodes and links to display.
  * @param props.highlightedNodeIds - Optional array of node IDs to highlight from search results.
  * @param props.pathTree - Optional Tree structure representing the learning path to highlight.
+ * @param props.currentNode - The current node in path traversal with throbbing animation.
+ * @param props.doneNodeIds - Array of completed node IDs marked as done.
+ * @param props.doneLinkIds - Array of completed link IDs marked as done.
  * @returns The rendered D3 chart visualization.
  */
 function SearchPageChart({
   highlightedNodeIds = [],
   pathTree = null,
   universalTree,
+  currentNode = null,
+  doneNodeIds = [],
+  doneLinkIds = [],
 }: SearchPageChartProps) {
   const [displayedTree] = useState(universalTree);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -52,6 +61,9 @@ function SearchPageChart({
   return (
     <>
       <D3Chart
+        currentNode={currentNode}
+        doneLinkIds={doneLinkIds}
+        doneNodeIds={doneNodeIds}
         onNodeClick={handleNodeClick}
         pathTree={pathTree}
         selectedNodeIds={allSelectedNodeIds}
