@@ -3,18 +3,20 @@ import { useEffect, useRef } from "react";
 
 import {
   ACTIVE_LINK_COLOR,
-  ACTIVE_MODULE_FILL,
-  ACTIVE_SKILL_FILL,
   DONE_LINK_COLOR,
-  DONE_SKILL_FILL,
-  DONE_URL_FILL,
   INACTIVE_LINK_COLOR,
-  INACTIVE_MODULE_FILL,
-  INACTIVE_SKILL_FILL,
   MINOR_RADIUS,
   RADIUS,
 } from "../../common-constants";
 import type { Link, Tree, WBNode } from "../../types/types";
+import {
+  getLinkColor,
+  getLinkOpacity,
+  getNodeFill,
+  getNodeOpacity,
+  isLinkDone,
+  isLinkInPath,
+} from "./graph-styles";
 
 // Vitest sets NODE_ENV="test" automatically; Vite sets it for dev/prod builds
 const IS_TEST_ENV = import.meta.env.MODE === "test";
@@ -42,122 +44,6 @@ type LinkDatum = Link | SimulatedLink;
  */
 function isSimulatedNode(endpoint: LinkEndpoint): endpoint is SimulatedWBNode {
   return typeof endpoint !== "string";
-}
-
-/**
- * Determines the fill color for a node based on its type, selection, and completion state.
- *
- * @param node - The node to style.
- * @param selectedIds - Array of selected node IDs.
- * @param doneNodeIds - Array of completed/done node IDs.
- * @returns The appropriate fill color.
- */
-function getNodeFill(
-  node: SimulatedWBNode,
-  selectedIds: string[],
-  doneNodeIds: string[],
-): string {
-  const isDone = doneNodeIds.includes(node.id);
-  const isSelected = selectedIds.includes(node.id);
-
-  if (isDone) {
-    return node.type === "skill" ? DONE_SKILL_FILL : DONE_URL_FILL;
-  }
-
-  if (node.type === "skill") {
-    return isSelected ? ACTIVE_SKILL_FILL : INACTIVE_SKILL_FILL;
-  }
-  if (node.type === "url") {
-    return isSelected ? ACTIVE_MODULE_FILL : INACTIVE_MODULE_FILL;
-  }
-  return INACTIVE_SKILL_FILL;
-}
-
-/**
- * Determines whether a node is part of the current learning path.
- *
- * @param node - The simulated node to check.
- * @param pathTree - The current learning path tree.
- * @returns True when the node exists in the path tree.
- */
-function isNodeInPath(node: SimulatedWBNode, pathTree: Tree | null): boolean {
-  if (!pathTree || pathTree?.nodes?.length === 0) return false;
-  return pathTree.nodes.some((pathNode) => pathNode.id === node.id);
-}
-
-/**
- * Computes opacity for a node based on path membership.
- * Nodes in the path stay fully opaque; others are dimmed.
- *
- * @param node - The simulated node to style.
- * @param pathTree - The current learning path tree.
- * @returns Opacity value between 0 and 1.
- */
-function getNodeOpacity(node: SimulatedWBNode, pathTree: Tree | null): number {
-  if (!pathTree || pathTree?.nodes?.length === 0) return 1;
-  return isNodeInPath(node, pathTree) ? 1 : 0.25;
-}
-
-/**
- * Determines if a link is part of the path based on the path tree.
- *
- * @param link - The link to check.
- * @param pathTree - The tree structure representing the path.
- * @returns True if the link is in the path tree.
- */
-function isLinkInPath(link: LinkDatum, pathTree: Tree | null): boolean {
-  if (!pathTree || pathTree?.links?.length === 0) return false;
-
-  const sourceId = isSimulatedNode(link.source) ? link.source.id : link.source;
-  const targetId = isSimulatedNode(link.target) ? link.target.id : link.target;
-
-  // Check if this link exists in the path tree
-  return pathTree?.links?.some(
-    (pathLink) => pathLink.source === sourceId && pathLink.target === targetId,
-  );
-}
-
-/**
- * Computes opacity for a link based on path membership.
- * Links in the path stay fully opaque; others are dimmed.
- *
- * @param link - The link datum to style.
- * @param pathTree - The current learning path tree.
- * @returns Opacity value between 0 and 1.
- */
-function getLinkOpacity(link: LinkDatum, pathTree: Tree | null): number {
-  if (!pathTree || pathTree?.links?.length === 0) return 1;
-  return isLinkInPath(link, pathTree) ? 1 : 0.2;
-}
-
-/**
- * Determines whether a link is marked as done (completed).
- *
- * @param link - The link to check.
- * @param doneLinkIds - Array of completed link IDs.
- * @returns True if the link is marked as done.
- */
-function isLinkDone(link: LinkDatum, doneLinkIds: string[]): boolean {
-  return doneLinkIds.includes(link.id);
-}
-
-/**
- * Determines the stroke color for a link based on path membership and completion.
- *
- * @param link - The link to style.
- * @param pathTree - The current learning path tree.
- * @param doneLinkIds - Array of completed link IDs.
- * @returns The appropriate stroke color.
- */
-function getLinkColor(
-  link: LinkDatum,
-  pathTree: Tree | null,
-  doneLinkIds: string[],
-): string {
-  if (isLinkDone(link, doneLinkIds)) {
-    return DONE_LINK_COLOR;
-  }
-  return isLinkInPath(link, pathTree) ? ACTIVE_LINK_COLOR : INACTIVE_LINK_COLOR;
 }
 
 interface D3ChartProps {
