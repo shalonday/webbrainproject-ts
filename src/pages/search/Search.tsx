@@ -1,20 +1,12 @@
-import SearchIcon from "@mui/icons-material/Search";
-import {
-  Box,
-  Button,
-  Card,
-  CircularProgress,
-  InputAdornment,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Card, CircularProgress } from "@mui/material";
 import type { ReactNode } from "react";
 
 import type { WBNode } from "../../types/types";
+import { ActionButtons } from "./components/ActionButtons";
+import { PathList } from "./components/PathList";
+import { RecommendedList } from "./components/RecommendedList";
+import { ResultsList } from "./components/ResultsList";
+import { SearchInput } from "./components/SearchInput";
 import SearchPageChart from "./SearchPageChart";
 import { useSearchPageState } from "./useSearchPageState";
 
@@ -57,6 +49,19 @@ function Search(): ReactNode {
   const handlePathNodeClick = (node: WBNode) => {
     // eslint-disable-next-line no-console
     console.log("Path node clicked:", node);
+  };
+
+  /**
+   * Handles search term changes.
+   * Clears search when term is empty.
+   *
+   * @param value - The new search term.
+   */
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (!value.trim()) {
+      handleSearch("");
+    }
   };
 
   if (isLoadingQuery) {
@@ -121,203 +126,43 @@ function Search(): ReactNode {
           }}
         />
 
-        {/* Search Input */}
-        <Box sx={{ px: 3, pb: 2 }}>
-          <TextField
-            id="search-textbox"
-            placeholder="Search for a skill or URL"
-            aria-label="search"
-            variant="outlined"
-            fullWidth
-            value={searchTerm}
-            onChange={(e) => {
-              const nextTerm = e.target.value;
-              setSearchTerm(nextTerm);
-              if (!nextTerm.trim()) {
-                handleSearch("");
-              }
-            }}
-            onKeyDown={handleKeyDown}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 3,
-                backgroundColor: "grey.100",
-              },
-            }}
-          />
-        </Box>
+        <SearchInput
+          value={searchTerm}
+          onSearchChange={handleSearchChange}
+          onKeyDown={handleKeyDown}
+        />
 
         {/* Results or Recommended Section */}
         <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
           {pathTree ? (
-            // Learning Path Display
-            <>
-              <Typography
-                variant="subtitle2"
-                sx={{ px: 1, py: 1, color: "text.secondary" }}
-              >
-                Learning Path
-              </Typography>
-              <List>
-                {pathTree.nodes.map((node) => (
-                  <ListItem key={node.id} disablePadding>
-                    <ListItemButton
-                      onClick={() => handlePathNodeClick(node)}
-                      sx={{
-                        borderRadius: 2,
-                        mb: 0.5,
-                        backgroundColor:
-                          currentNode?.id === node.id
-                            ? "primary.light"
-                            : "transparent",
-                        "&:hover": {
-                          backgroundColor:
-                            currentNode?.id === node.id
-                              ? "primary.light"
-                              : "action.hover",
-                        },
-                      }}
-                    >
-                      <ListItemText
-                        primary={node.name}
-                        secondary={`Type: ${node.type}${doneNodeIds.includes(node.id) ? " • Done" : node.id === currentNodeId ? " • Current" : ""}`}
-                        primaryTypographyProps={{
-                          fontWeight: 500,
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-            </>
+            <PathList
+              pathNodes={pathTree.nodes}
+              currentNodeId={currentNodeId}
+              doneNodeIds={doneNodeIds}
+              onPathNodeClick={handlePathNodeClick}
+            />
           ) : isSearchActive ? (
-            // Search Results
-            <>
-              <Typography
-                variant="subtitle2"
-                sx={{ px: 1, py: 1, color: "text.secondary" }}
-              >
-                {searchResults.length} result
-                {searchResults.length !== 1 ? "s" : ""} found
-              </Typography>
-              <List>
-                {searchResults.map((node) => (
-                  <ListItem key={node.id} disablePadding>
-                    <ListItemButton
-                      selected={selectedResultId === node.id}
-                      onClick={() => handleResultSelect(node.id)}
-                      sx={{
-                        borderRadius: 2,
-                        mb: 0.5,
-                      }}
-                    >
-                      <ListItemText
-                        primary={node.name}
-                        secondary={`Type: ${node.type}`}
-                        primaryTypographyProps={{
-                          fontWeight: 500,
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-                {searchResults.length === 0 && (
-                  <Typography
-                    variant="body2"
-                    sx={{ px: 1, py: 2, color: "text.secondary" }}
-                  >
-                    No results found for &quot;{searchTerm}&quot;
-                  </Typography>
-                )}
-              </List>
-            </>
+            <ResultsList
+              results={searchResults}
+              selectedResultId={selectedResultId}
+              onResultSelect={handleResultSelect}
+              searchTerm={searchTerm}
+            />
           ) : (
-            // Recommended Results
-            <>
-              <Typography
-                variant="subtitle2"
-                sx={{ px: 1, py: 1, color: "text.secondary" }}
-              >
-                Recommended Skills
-              </Typography>
-              <List>
-                {recommendedNodes.map((node) => (
-                  <ListItem key={node.id} disablePadding>
-                    <ListItemButton
-                      sx={{
-                        borderRadius: 2,
-                        mb: 0.5,
-                      }}
-                    >
-                      <ListItemText
-                        primary={node.name}
-                        secondary={`Type: ${node.type}`}
-                        primaryTypographyProps={{
-                          fontWeight: 500,
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-                {recommendedNodes.length === 0 && (
-                  <Typography
-                    variant="body2"
-                    sx={{ px: 1, py: 2, color: "text.secondary" }}
-                  >
-                    No recommendations available
-                  </Typography>
-                )}
-              </List>
-            </>
+            <RecommendedList recommendedNodes={recommendedNodes} />
           )}
         </Box>
 
-        {/* Generate Path Button */}
-        {isSearchActive && searchResults.length > 0 && !pathTree && (
-          <Box sx={{ px: 2, pb: 2 }}>
-            <Button
-              fullWidth
-              variant="contained"
-              disabled={!selectedResultId}
-              onClick={handleGeneratePath}
-              sx={{
-                borderRadius: 2,
-                py: 1.5,
-                textTransform: "none",
-                fontSize: "1rem",
-              }}
-            >
-              Generate Learning Path
-            </Button>
-          </Box>
-        )}
-
-        {/* Move Forward Button */}
-        {pathTree && pathTree.nodes.length > 0 && (
-          <Box sx={{ px: 2, pb: 2 }}>
-            <Button
-              fullWidth
-              variant="contained"
-              disabled={!isMoveForwardEnabled()}
-              onClick={handleMoveForward}
-              sx={{
-                borderRadius: 2,
-                py: 1.5,
-                textTransform: "none",
-                fontSize: "1rem",
-              }}
-            >
-              Move Forward
-            </Button>
-          </Box>
-        )}
+        {/* Action Buttons */}
+        <ActionButtons
+          isSearchActive={isSearchActive}
+          hasSearchResults={searchResults.length > 0}
+          hasPath={Boolean(pathTree && pathTree.nodes.length > 0)}
+          selectedResultId={selectedResultId}
+          isMoveForwardEnabled={isMoveForwardEnabled()}
+          onGeneratePath={handleGeneratePath}
+          onMoveForward={handleMoveForward}
+        />
       </Card>
     </Box>
   );

@@ -1,0 +1,74 @@
+import {
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Typography,
+} from "@mui/material";
+
+import type { WBNode } from "../../../types/types";
+
+interface PathListProps {
+  currentNodeId: string | null;
+  doneNodeIds: string[];
+  onPathNodeClick: (node: WBNode) => void;
+  pathNodes: WBNode[];
+}
+
+/**
+ * Learning path list component.
+ * Displays the generated learning path with current and done indicators.
+ *
+ * @param props - Component props.
+ * @param props.pathNodes - Array of nodes in the learning path.
+ * @param props.currentNodeId - ID of the current node in traversal.
+ * @param props.doneNodeIds - Array of completed node IDs.
+ * @param props.onPathNodeClick - Callback when a path node is clicked.
+ * @returns The rendered path list.
+ */
+export function PathList({
+  pathNodes,
+  currentNodeId,
+  doneNodeIds,
+  onPathNodeClick,
+}: PathListProps) {
+  return (
+    <>
+      <Typography
+        variant="subtitle2"
+        sx={{ px: 1, py: 1, color: "text.secondary" }}
+      >
+        Learning Path
+      </Typography>
+      <List>
+        {pathNodes.map((node) => (
+          <ListItem key={node.id} disablePadding>
+            <ListItemButton
+              onClick={() => onPathNodeClick(node)}
+              sx={{
+                borderRadius: 2,
+                mb: 0.5,
+                backgroundColor:
+                  currentNodeId === node.id ? "primary.light" : "transparent",
+                "&:hover": {
+                  backgroundColor:
+                    currentNodeId === node.id
+                      ? "primary.light"
+                      : "action.hover",
+                },
+              }}
+            >
+              <ListItemText
+                primary={node.name}
+                secondary={`Type: ${node.type}${doneNodeIds.includes(node.id) ? " • Done" : node.id === currentNodeId ? " • Current" : ""}`}
+                primaryTypographyProps={{
+                  fontWeight: 500,
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </>
+  );
+}
