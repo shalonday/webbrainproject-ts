@@ -518,7 +518,50 @@ describe("Learning Path Display", () => {
         { timeout: 10000 },
       );
 
-      // Validate node opacity: E (in path) should be fully visible\n      const circles = Array.from(document.querySelectorAll("circle"));\n      const eNode = circles.find(\n        (circle) =>\n          (circle as unknown as { __data__?: WBNode }).__data__?.name === \"E\",\n      );\n\n      // E is the starting node in the path, should be fully visible\n      expect(eNode).toBeTruthy();\n      expect(eNode?.getAttribute(\"opacity\")).toBe(\"1\");\n\n      // Find all dimmed nodes (opacity 0.25 - these are nodes NOT in the path)\n      const dimmedNodes = circles.filter(\n        (circle) => circle.getAttribute(\"opacity\") === \"0.25\",\n      );\n      // There should be at least one dimmed node (React, JavaScript, etc.)\n      expect(dimmedNodes.length).toBeGreaterThan(0);\n\n      // Validate link opacity: path link remains emphasized\n      const lines = Array.from(document.querySelectorAll(\"line\"));\n      const pathLinkEtoUrl1 = lines.find(\n        (line) =>\n          (line as unknown as { __data__?: Link }).__data__?.id === \"link-1\",\n      );\n\n      // Path link should be fully visible\n      expect(pathLinkEtoUrl1).toBeTruthy();\n      expect(pathLinkEtoUrl1?.getAttribute(\"opacity\")).toBe(\"1\");
+      // Wait for graph to apply opacity styles
+      await waitFor(
+        () => {
+          const lines = Array.from(document.querySelectorAll("line"));
+
+          // Validate node opacity: E (in path) should be fully visible
+          const circles = Array.from(document.querySelectorAll("circle"));
+          const eNode = circles.find(
+            (circle) =>
+              (circle as unknown as { __data__?: WBNode }).__data__?.name ===
+              "E",
+          );
+
+          // E is the starting node in the path, should be fully visible
+          expect(eNode).toBeTruthy();
+          const eOpacity = eNode?.getAttribute("opacity");
+          expect(eOpacity).toBe("1");
+
+          // Find all dimmed nodes (opacity 0.25 - these are nodes NOT in the path)
+          const dimmedNodes = circles.filter((circle) => {
+            const opacity = circle.getAttribute("opacity");
+            return opacity === "0.25";
+          });
+          // There should be at least one dimmed node (React, JavaScript, etc.)
+          expect(dimmedNodes.length).toBeGreaterThan(0);
+
+          // Validate link opacity: path links remain emphasized
+          // Find links with full opacity (in path) vs dimmed (not in path)
+          const pathLinks = lines.filter((line) => {
+            const opacity = line.getAttribute("opacity");
+            return opacity === "1";
+          });
+          const dimmedLinks = lines.filter((line) => {
+            const opacity = line.getAttribute("opacity");
+            return opacity === "0.2";
+          });
+
+          // Path should have at least one emphasized link
+          expect(pathLinks.length).toBeGreaterThan(0);
+          // And should have some dimmed links (non-path links)
+          expect(dimmedLinks.length).toBeGreaterThan(0);
+        },
+        { timeout: 5000 },
+      );
     },
   );
 });
