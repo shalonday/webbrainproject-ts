@@ -42,6 +42,10 @@ Note that a URL can have multiple prerequisite skills, and multiple objective sk
 - **Linting**: Flat ESLint config with React hooks, refresh, accessibility, JSDoc, and import sorting plugins. Enforces camelCase variables, camelCase/PascalCase functions (for components), PascalCase types, semicolons (via @stylistic), no console logs, alphabetical imports, JSX keys, no prop mutation, and JSDoc on exports (warn)
 - **Readability**: Prioritize human-readable code and tests. Make functions modular and encapsulated with comprehensive JSDoc comments. Have clear entrypoints for functionality, and clearly distinguish between primary functions and helper functions through naming, organization, and documentation
 
+## Documentation Hygiene
+
+- Keep `docs/architecture.md` up to date whenever architecture or file structure changes (flows, ownership of modules, extracted utilities, or visualization helpers).
+
 ## Key Files
 
 - `src/App.tsx`: Main app component (currently placeholder)
