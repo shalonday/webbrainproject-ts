@@ -17,7 +17,7 @@ import { useState } from "react";
 
 import { BASE_URL } from "../../common-constants";
 import { useSkillTreesContext } from "../../contexts/SkillTreesContext.tsx";
-import type { Tree, WBNode } from "../../types/types";
+import type { Link, Tree, WBNode } from "../../types/types";
 import SearchPageChart from "./SearchPageChart.tsx";
 
 /**
@@ -33,9 +33,16 @@ function Search(): ReactNode {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const [pathTree, setPathTree] = useState<Tree | null>(null);
+  const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+  const [doneNodeIds, setDoneNodeIds] = useState<string[]>([]);
+  const [doneLinkIds, setDoneLinkIds] = useState<string[]>([]);
+  const [visitedNodeIds, setVisitedNodeIds] = useState<string[]>([]);
 
   // Sample recommended nodes (you can replace this with actual logic)
   const recommendedNodes: WBNode[] = universalTree?.nodes.slice(0, 5) || [];
+
+  const currentNode =
+    pathTree?.nodes.find((n) => n.id === currentNodeId) || null;
 
   /**
    * Searches for nodes in the tree that match the given query.
@@ -119,11 +126,220 @@ function Search(): ReactNode {
       const data = await response.json();
       const pathTree: Tree = { nodes: data.nodes, links: data.links };
       setPathTree(pathTree);
+      setCurrentNodeId(pathTree.nodes.length > 0 ? pathTree.nodes[0].id : null);
+      setDoneNodeIds([]);
+      setDoneLinkIds([]);
+      setVisitedNodeIds([]);
+
+      // Trigger landing on the first node
+      if (pathTree.nodes.length > 0) {
+        setVisitedNodeIds([pathTree.nodes[0].id]);
+        handleLandOnNode(pathTree.nodes[0]);
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Error generating path:", error);
       setPathTree(null);
     }
+  };
+
+  /**
+   * Placeholder function that triggers when landing on a URL node.
+   * Will be implemented later.
+   *
+   * @param {WBNode} node - The URL node that was landed on.
+   */
+  const handleLandOnUrlNode = (node: WBNode) => {
+    // eslint-disable-next-line no-console
+    console.log("Landed on URL node:", node);
+    // TODO: Implement URL node landing behavior
+  };
+
+  /**
+   * Placeholder function that triggers when landing on a skill node.
+   * Will be implemented later.
+   *
+   * @param {WBNode} node - The skill node that was landed on.
+   */
+  const handleLandOnSkillNode = (node: WBNode) => {
+    // eslint-disable-next-line no-console
+    console.log("Landed on skill node:", node);
+    // TODO: Implement skill node landing behavior
+  };
+
+  /**
+   * Dispatches to the appropriate landing handler based on node type.
+   *
+   * @param {WBNode} node - The node that was landed on.
+   */
+  const handleLandOnNode = (node: WBNode) => {
+    if (node.type === "url") {
+      handleLandOnUrlNode(node);
+    } else if (node.type === "skill") {
+      handleLandOnSkillNode(node);
+    }
+  };
+
+  /**
+   * Determines if the Move Forward button should be enabled.
+   * Button is enabled if there are outgoing links from the current node.
+   *
+   * @returns {boolean} True if Move Forward button should be enabled.
+   */
+  const isMoveForwardEnabled = (): boolean => {
+    if (!pathTree || !currentNodeId) {
+      return false;
+    }
+    // Check if there are any outgoing links from current node
+    const outgoingLinks = pathTree.links.filter(
+      (link) => link.source === currentNodeId,
+    );
+    return outgoingLinks.length > 0;
+  };
+
+  /**   * Checks if a URL node has all its skill prerequisites completed.
+   * Looks at the universal tree to find all nodes that have links to this URL.
+   *
+   * @param {WBNode} urlNode - The URL node to check.
+   * @param {string[]} additionalDoneIds - Additional node IDs to consider as done.
+   * @returns {boolean} True if all skill prerequisites are done.
+   */
+  const hasAllSkillPrerequisitesDone = (
+    urlNode: WBNode,
+    additionalDoneIds: string[] = [],
+  ): boolean => {
+    if (!universalTree || urlNode.type !== "url") return true;
+
+    // Find all nodes that link to this URL (prerequisites)
+    const prerequisiteNodeIds = universalTree.links
+      .filter((link) => link.target === urlNode.id)
+      .map((link) => link.source);
+
+    // Get the actual nodes
+    const prerequisiteNodes = universalTree.nodes.filter((node) =>
+      prerequisiteNodeIds.includes(node.id),
+    );
+
+    // Check if all skill prerequisites are done
+    const skillPrerequisites = prerequisiteNodes.filter(
+      (node) => node.type === "skill",
+    );
+    const allDoneIds = [...doneNodeIds, ...additionalDoneIds];
+    return skillPrerequisites.every((node) => allDoneIds.includes(node.id));
+  };
+
+  /**
+   * Moves to the next node in the learning path by following outgoing links.
+   * Marks the current node and link as done before advancing.
+   * If the next node is a URL with incomplete skill prerequisites, backtracks to an undone branching target.
+   */
+  const handleMoveForward = () => {
+    if (!pathTree || !currentNodeId) {
+      return;
+    }
+
+    // Mark current node as done
+    setDoneNodeIds((prev) => [...prev, currentNodeId]);
+
+    // Find all outgoing links from current node
+    const outgoingLinks = pathTree.links.filter(
+      (link) => link.source === currentNodeId,
+    );
+
+    if (outgoingLinks.length === 0) {
+      return;
+    }
+
+    // Find first undone target node
+    let targetLink = null;
+    let targetNode = null;
+
+    for (const link of outgoingLinks) {
+      const node = pathTree.nodes.find((n) => n.id === link.target);
+      if (node && !doneNodeIds.includes(node.id)) {
+        // Check if this URL has prerequisites satisfied
+        if (
+          node.type === "url" &&
+          !hasAllSkillPrerequisitesDone(node, [currentNodeId])
+        ) {
+          // Prerequisites not met, look for alternative branch
+          continue;
+        }
+        targetLink = link;
+        targetNode = node;
+        break;
+      }
+    }
+
+    // If no valid forward target, try to backtrack to an undone branch
+    if (!targetNode) {
+      const backtrackTarget = findUndoneBranchTarget();
+      if (backtrackTarget) {
+        targetNode = backtrackTarget.node;
+        targetLink = backtrackTarget.link;
+      } else {
+        return;
+      }
+    }
+
+    // Mark the link(s) as done
+    if (targetLink) {
+      // If target is a URL with multiple prerequisites, mark all incoming links as done
+      if (targetNode.type === "url") {
+        const allIncomingLinks = pathTree.links.filter(
+          (link) => link.target === targetNode.id,
+        );
+        const incomingLinkIds = allIncomingLinks.map((link) => link.id);
+        setDoneLinkIds((prev) => [...prev, ...incomingLinkIds]);
+      } else {
+        // For skill nodes, just mark the single link
+        setDoneLinkIds((prev) => [...prev, targetLink.id]);
+      }
+    }
+
+    // Move to target node
+    setCurrentNodeId(targetNode.id);
+    setVisitedNodeIds((prev) => [...prev, targetNode.id]);
+    handleLandOnNode(targetNode);
+  };
+
+  /**
+   * Finds an undone node from a previously visited branching node.
+   * Returns the node and the link leading to it.
+   */
+  const findUndoneBranchTarget = (): { node: WBNode; link: Link } | null => {
+    if (!pathTree) return null;
+
+    // Check all visited nodes for branches with undone targets
+    for (const visitedId of visitedNodeIds) {
+      const outgoingLinks = pathTree.links.filter(
+        (link) => link.source === visitedId,
+      );
+
+      // Only consider branching nodes (more than one outgoing link)
+      if (outgoingLinks.length <= 1) continue;
+
+      // Find first undone target
+      for (const link of outgoingLinks) {
+        const node = pathTree.nodes.find((n) => n.id === link.target);
+        if (node && !doneNodeIds.includes(node.id)) {
+          return { node, link };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  /**
+   * Handles clicking on a path node card.
+   * Currently logs the node properties as a placeholder.
+   *
+   * @param {WBNode} node - The node that was clicked.
+   */
+  const handlePathNodeClick = (node: WBNode) => {
+    // eslint-disable-next-line no-console
+    console.log("Path node clicked:", node);
   };
 
   if (isLoadingQuery) {
@@ -146,9 +362,12 @@ function Search(): ReactNode {
       {/* Background Chart */}
       {universalTree && (
         <SearchPageChart
+          currentNode={currentNode}
+          doneLinkIds={doneLinkIds}
+          doneNodeIds={doneNodeIds}
+          highlightedNodeIds={searchResults.map((node) => node.id)}
           pathTree={pathTree}
           universalTree={universalTree}
-          highlightedNodeIds={searchResults.map((node) => node.id)}
         />
       )}
 
@@ -220,7 +439,48 @@ function Search(): ReactNode {
 
         {/* Results or Recommended Section */}
         <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
-          {isSearchActive ? (
+          {pathTree ? (
+            // Learning Path Display
+            <>
+              <Typography
+                variant="subtitle2"
+                sx={{ px: 1, py: 1, color: "text.secondary" }}
+              >
+                Learning Path
+              </Typography>
+              <List>
+                {pathTree.nodes.map((node) => (
+                  <ListItem key={node.id} disablePadding>
+                    <ListItemButton
+                      onClick={() => handlePathNodeClick(node)}
+                      sx={{
+                        borderRadius: 2,
+                        mb: 0.5,
+                        backgroundColor:
+                          currentNode?.id === node.id
+                            ? "primary.light"
+                            : "transparent",
+                        "&:hover": {
+                          backgroundColor:
+                            currentNode?.id === node.id
+                              ? "primary.light"
+                              : "action.hover",
+                        },
+                      }}
+                    >
+                      <ListItemText
+                        primary={node.name}
+                        secondary={`Type: ${node.type}${doneNodeIds.includes(node.id) ? " • Done" : node.id === currentNodeId ? " • Current" : ""}`}
+                        primaryTypographyProps={{
+                          fontWeight: 500,
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          ) : isSearchActive ? (
             // Search Results
             <>
               <Typography
@@ -321,6 +581,26 @@ function Search(): ReactNode {
               }}
             >
               Generate Learning Path
+            </Button>
+          </Box>
+        )}
+
+        {/* Move Forward Button */}
+        {pathTree && pathTree.nodes.length > 0 && (
+          <Box sx={{ px: 2, pb: 2 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              disabled={!isMoveForwardEnabled()}
+              onClick={handleMoveForward}
+              sx={{
+                borderRadius: 2,
+                py: 1.5,
+                textTransform: "none",
+                fontSize: "1rem",
+              }}
+            >
+              Move Forward
             </Button>
           </Box>
         )}
