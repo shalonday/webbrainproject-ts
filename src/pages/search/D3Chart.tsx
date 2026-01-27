@@ -2,8 +2,12 @@ import * as d3 from "d3";
 import { useEffect, useRef } from "react";
 
 import {
+  ACTIVE_LINK_COLOR,
   ACTIVE_MODULE_FILL,
   ACTIVE_SKILL_FILL,
+  DONE_LINK_COLOR,
+  DONE_SKILL_FILL,
+  DONE_URL_FILL,
   INACTIVE_LINK_COLOR,
   INACTIVE_MODULE_FILL,
   INACTIVE_SKILL_FILL,
@@ -41,14 +45,25 @@ function isSimulatedNode(endpoint: LinkEndpoint): endpoint is SimulatedWBNode {
 }
 
 /**
- * Determines the fill color for a node based on its type and selection state.
+ * Determines the fill color for a node based on its type, selection, and completion state.
  *
  * @param node - The node to style.
  * @param selectedIds - Array of selected node IDs.
+ * @param doneNodeIds - Array of completed/done node IDs.
  * @returns The appropriate fill color.
  */
-function getNodeFill(node: SimulatedWBNode, selectedIds: string[]): string {
+function getNodeFill(
+  node: SimulatedWBNode,
+  selectedIds: string[],
+  doneNodeIds: string[],
+): string {
+  const isDone = doneNodeIds.includes(node.id);
   const isSelected = selectedIds.includes(node.id);
+
+  if (isDone) {
+    return node.type === "skill" ? DONE_SKILL_FILL : DONE_URL_FILL;
+  }
+
   if (node.type === "skill") {
     return isSelected ? ACTIVE_SKILL_FILL : INACTIVE_SKILL_FILL;
   }
@@ -58,11 +73,101 @@ function getNodeFill(node: SimulatedWBNode, selectedIds: string[]): string {
   return INACTIVE_SKILL_FILL;
 }
 
+/**
+ * Determines whether a node is part of the current learning path.
+ *
+ * @param node - The simulated node to check.
+ * @param pathTree - The current learning path tree.
+ * @returns True when the node exists in the path tree.
+ */
+function isNodeInPath(node: SimulatedWBNode, pathTree: Tree | null): boolean {
+  if (!pathTree || pathTree?.nodes?.length === 0) return false;
+  return pathTree.nodes.some((pathNode) => pathNode.id === node.id);
+}
+
+/**
+ * Computes opacity for a node based on path membership.
+ * Nodes in the path stay fully opaque; others are dimmed.
+ *
+ * @param node - The simulated node to style.
+ * @param pathTree - The current learning path tree.
+ * @returns Opacity value between 0 and 1.
+ */
+function getNodeOpacity(node: SimulatedWBNode, pathTree: Tree | null): number {
+  if (!pathTree || pathTree?.nodes?.length === 0) return 1;
+  return isNodeInPath(node, pathTree) ? 1 : 0.25;
+}
+
+/**
+ * Determines if a link is part of the path based on the path tree.
+ *
+ * @param link - The link to check.
+ * @param pathTree - The tree structure representing the path.
+ * @returns True if the link is in the path tree.
+ */
+function isLinkInPath(link: LinkDatum, pathTree: Tree | null): boolean {
+  if (!pathTree || pathTree?.links?.length === 0) return false;
+
+  const sourceId = isSimulatedNode(link.source) ? link.source.id : link.source;
+  const targetId = isSimulatedNode(link.target) ? link.target.id : link.target;
+
+  // Check if this link exists in the path tree
+  return pathTree?.links?.some(
+    (pathLink) => pathLink.source === sourceId && pathLink.target === targetId,
+  );
+}
+
+/**
+ * Computes opacity for a link based on path membership.
+ * Links in the path stay fully opaque; others are dimmed.
+ *
+ * @param link - The link datum to style.
+ * @param pathTree - The current learning path tree.
+ * @returns Opacity value between 0 and 1.
+ */
+function getLinkOpacity(link: LinkDatum, pathTree: Tree | null): number {
+  if (!pathTree || pathTree?.links?.length === 0) return 1;
+  return isLinkInPath(link, pathTree) ? 1 : 0.2;
+}
+
+/**
+ * Determines whether a link is marked as done (completed).
+ *
+ * @param link - The link to check.
+ * @param doneLinkIds - Array of completed link IDs.
+ * @returns True if the link is marked as done.
+ */
+function isLinkDone(link: LinkDatum, doneLinkIds: string[]): boolean {
+  return doneLinkIds.includes(link.id);
+}
+
+/**
+ * Determines the stroke color for a link based on path membership and completion.
+ *
+ * @param link - The link to style.
+ * @param pathTree - The current learning path tree.
+ * @param doneLinkIds - Array of completed link IDs.
+ * @returns The appropriate stroke color.
+ */
+function getLinkColor(
+  link: LinkDatum,
+  pathTree: Tree | null,
+  doneLinkIds: string[],
+): string {
+  if (isLinkDone(link, doneLinkIds)) {
+    return DONE_LINK_COLOR;
+  }
+  return isLinkInPath(link, pathTree) ? ACTIVE_LINK_COLOR : INACTIVE_LINK_COLOR;
+}
+
 interface D3ChartProps {
   currentNode?: WBNode | null;
+  doneLinkIds?: string[];
+  doneNodeIds?: string[];
   onNodeClick?: (nodeId: string) => void;
   onNodeTouchEnd?: (event: React.TouchEvent<SVGCircleElement>) => void;
   onNodeTouchStart?: (event: React.TouchEvent<SVGCircleElement>) => void;
+  pathTree?: Tree | null;
   selectedNodeIds?: string[];
   tree: Tree;
 }
@@ -85,7 +190,7 @@ type NodeSelection = d3.Selection<
  */
 function setupZoom(
   svgRef: React.RefObject<SVGSVGElement | null>,
-  gNodeAndLinkRef: React.RefObject<SVGGElement | null>
+  gNodeAndLinkRef: React.RefObject<SVGGElement | null>,
 ) {
   if (IS_TEST_ENV || typeof document === "undefined" || !svgRef.current) {
     return;
@@ -119,13 +224,13 @@ function createSimulation(
   links: LinkDatum[],
   width: number,
   height: number,
-  ticked: () => void
+  ticked: () => void,
 ) {
   return d3
     .forceSimulation(nodes)
     .force(
       "link",
-      d3.forceLink<SimulatedWBNode, (typeof links)[0]>(links).id((d) => d.id)
+      d3.forceLink<SimulatedWBNode, (typeof links)[0]>(links).id((d) => d.id),
     )
     .force("charge", d3.forceManyBody().strength(-30))
     .force("x", d3.forceX(width / 2))
@@ -139,33 +244,71 @@ function createSimulation(
  *
  * @param gLinkRef - Reference to the SVG group containing link elements.
  * @param links - Array of link data to bind to elements.
+ * @param pathTree - The tree structure representing the path.
+ * @param doneLinkIds - Array of completed link IDs.
  * @returns D3 selection of rendered line elements for further manipulation.
  */
 function renderLinks(
   gLinkRef: React.RefObject<SVGGElement | null>,
-  links: LinkDatum[]
+  links: LinkDatum[],
+  pathTree: Tree | null,
+  doneLinkIds: string[],
 ): LinkSelection {
   return d3
     .select(gLinkRef.current)
     .selectAll<SVGLineElement, LinkDatum>("line")
     .data(links)
-    .attr("stroke", INACTIVE_LINK_COLOR)
-    .attr("marker-end", "url(#arrow)");
+    .attr("stroke", (d) => getLinkColor(d, pathTree, doneLinkIds))
+    .attr("opacity", (d) => getLinkOpacity(d, pathTree))
+    .attr("stroke-width", (d) => (isLinkInPath(d, pathTree) ? 3 : 1.5))
+    .attr("marker-end", (d) => {
+      if (isLinkDone(d, doneLinkIds)) return "url(#arrow-done)";
+      return isLinkInPath(d, pathTree) ? "url(#arrow-active)" : "url(#arrow)";
+    });
 }
 /**
- * Updates node fill colors based on selection state.
- * Called when selectedNodeIds changes without recreating the simulation.
+ * Updates node fill and opacity based on selection state and path membership.
+ * Called when selection or path changes without recreating the simulation.
  *
  * @param gNodeRef - Reference to the SVG group containing node elements.
  * @param selectedNodeIds - Array of selected node IDs for styling.
+ * @param pathTree - The current learning path tree (used to dim non-path nodes).
+ * @param doneNodeIds - Array of completed node IDs.
  */
 function updateNodeColors(
   gNodeRef: React.RefObject<SVGGElement | null>,
-  selectedNodeIds: string[]
+  selectedNodeIds: string[],
+  pathTree: Tree | null,
+  doneNodeIds: string[],
 ) {
   d3.select(gNodeRef.current)
     .selectAll<SVGCircleElement, SimulatedWBNode>("circle")
-    .attr("fill", (d) => getNodeFill(d, selectedNodeIds));
+    .attr("fill", (d) => getNodeFill(d, selectedNodeIds, doneNodeIds))
+    .attr("opacity", (d) => getNodeOpacity(d, pathTree));
+}
+
+/**
+ * Updates link stroke color, width, marker, and opacity based on path state.
+ * Called when pathTree changes without recreating the simulation.
+ *
+ * @param gLinkRef - Reference to the SVG group containing link elements.
+ * @param pathTree - The tree structure representing the path.
+ * @param doneLinkIds - Array of completed link IDs.
+ */
+function updateLinkColors(
+  gLinkRef: React.RefObject<SVGGElement | null>,
+  pathTree: Tree | null,
+  doneLinkIds: string[],
+) {
+  d3.select(gLinkRef.current)
+    .selectAll<SVGLineElement, LinkDatum>("line")
+    .attr("stroke", (d) => getLinkColor(d, pathTree, doneLinkIds))
+    .attr("opacity", (d) => getLinkOpacity(d, pathTree))
+    .attr("stroke-width", (d) => (isLinkInPath(d, pathTree) ? 3 : 1.5))
+    .attr("marker-end", (d) => {
+      if (isLinkDone(d, doneLinkIds)) return "url(#arrow-done)";
+      return isLinkInPath(d, pathTree) ? "url(#arrow-active)" : "url(#arrow)";
+    });
 }
 
 /**
@@ -176,6 +319,8 @@ function updateNodeColors(
  * @param nodes - Array of nodes to render.
  * @param selectedNodeIds - Array of selected node IDs for styling.
  * @param simulation - Force simulation for drag interaction.
+ * @param pathTree - The current learning path tree.
+ * @param doneNodeIds - Array of completed node IDs.
  * @returns D3 selection of rendered circle elements.
  */
 function renderNodes(
@@ -185,16 +330,19 @@ function renderNodes(
   simulation: d3.Simulation<
     SimulatedWBNode,
     d3.SimulationLinkDatum<SimulatedWBNode>
-  >
+  >,
+  pathTree: Tree | null,
+  doneNodeIds: string[],
 ): NodeSelection {
   return d3
     .select(gNodeRef.current)
     .selectAll<SVGCircleElement, SimulatedWBNode>("circle")
     .data(nodes)
     .attr("r", (d) =>
-      d.type === "skill" || d.type === "url" ? RADIUS : MINOR_RADIUS
+      d.type === "skill" || d.type === "url" ? RADIUS : MINOR_RADIUS,
     )
-    .attr("fill", (d) => getNodeFill(d, selectedNodeIds))
+    .attr("fill", (d) => getNodeFill(d, selectedNodeIds, doneNodeIds))
+    .attr("opacity", (d) => getNodeOpacity(d, pathTree))
     .attr("stroke", "black")
     .call((selection) => {
       // Skip drag hookup in test environments or when DOM is unavailable
@@ -214,13 +362,13 @@ function createDrag(
   simulation: d3.Simulation<
     SimulatedWBNode,
     d3.SimulationLinkDatum<SimulatedWBNode>
-  >
+  >,
 ) {
   /**
    * Handles drag start: pins node and restarts simulation.
    */
   function dragstarted(
-    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
+    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>,
   ) {
     // onNodeTouchStart(event); // put the touch events within the drag events because I don't know how to trigger the longtouch otherwise
     if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -232,7 +380,7 @@ function createDrag(
    * Handles dragging: updates node position during drag.
    */
   function dragged(
-    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
+    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>,
   ) {
     event.subject.fx = event.x;
     event.subject.fy = event.y;
@@ -242,7 +390,7 @@ function createDrag(
    * Handles drag end: releases node and cools simulation.
    */
   function dragended(
-    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>
+    event: d3.D3DragEvent<SVGCircleElement, SimulatedWBNode, SimulatedWBNode>,
   ) {
     // onNodeTouchEnd(event);
     if (!event.active) simulation.alphaTarget(0);
@@ -266,10 +414,10 @@ function createDrag(
  */
 function updatePositions(link: LinkSelection, node: NodeSelection) {
   link
-    .attr("x1", (d) => (isSimulatedNode(d.source) ? d.source.x ?? 0 : 0))
-    .attr("y1", (d) => (isSimulatedNode(d.source) ? d.source.y ?? 0 : 0))
-    .attr("x2", (d) => (isSimulatedNode(d.target) ? d.target.x ?? 0 : 0))
-    .attr("y2", (d) => (isSimulatedNode(d.target) ? d.target.y ?? 0 : 0));
+    .attr("x1", (d) => (isSimulatedNode(d.source) ? (d.source.x ?? 0) : 0))
+    .attr("y1", (d) => (isSimulatedNode(d.source) ? (d.source.y ?? 0) : 0))
+    .attr("x2", (d) => (isSimulatedNode(d.target) ? (d.target.x ?? 0) : 0))
+    .attr("y2", (d) => (isSimulatedNode(d.target) ? (d.target.y ?? 0) : 0));
 
   node.attr("cx", (d) => d.x ?? 0).attr("cy", (d) => d.y ?? 0);
 }
@@ -280,36 +428,45 @@ function updatePositions(link: LinkSelection, node: NodeSelection) {
  *
  * @param data - Tree data containing nodes and links.
  * @param selectedNodeIds - Array of selected node IDs for styling.
+ * @param pathTree - The tree structure representing the path.
  * @param gNodeAndLinkRef - Reference to the main SVG group.
  * @param gLinkRef - Reference to the links SVG group.
  * @param gNodeRef - Reference to the nodes SVG group.
+ * @param svgRef - Reference to the SVG element.
+ * @param doneNodeIds - Array of completed node IDs.
+ * @param doneLinkIds - Array of completed link IDs.
  * @param viewBoxWidth - Width for center-force positioning, defaults to 400.
  * @param viewBoxHeight - Height for center-force positioning, defaults to 400.
  */
 function ForceGraph(
   data: Tree,
   selectedNodeIds: string[],
+  pathTree: Tree | null,
   gNodeAndLinkRef: React.RefObject<SVGGElement | null>,
   gLinkRef: React.RefObject<SVGGElement | null>,
   gNodeRef: React.RefObject<SVGGElement | null>,
   svgRef: React.RefObject<SVGSVGElement | null>,
+  doneNodeIds: string[],
+  doneLinkIds: string[],
   viewBoxWidth = 400,
-  viewBoxHeight = 400
+  viewBoxHeight = 400,
 ) {
   // The force simulation mutates links and nodes, so create a copy
   // so that re-evaluating this cell produces the same result.
-  const links = data.links.map((d) => ({ ...d }));
-  const nodes = data.nodes.map((d) => ({ ...d })) as SimulatedWBNode[];
+  const links = data.links?.map((d) => ({ ...d })) || [];
+  const nodes = data.nodes?.map((d) => ({ ...d })) || ([] as SimulatedWBNode[]);
 
-  const linkSelection = renderLinks(gLinkRef, links);
+  const linkSelection = renderLinks(gLinkRef, links, pathTree, doneLinkIds);
 
   const nodeSelection = renderNodes(
     gNodeRef,
     nodes,
     selectedNodeIds,
     createSimulation(nodes, links, viewBoxWidth, viewBoxHeight, () =>
-      updatePositions(linkSelection, nodeSelection)
-    )
+      updatePositions(linkSelection, nodeSelection),
+    ),
+    pathTree,
+    doneNodeIds,
   );
 
   setupZoom(svgRef, gNodeAndLinkRef);
@@ -333,14 +490,18 @@ export default function D3Chart({
   onNodeClick = () => {},
   onNodeTouchStart = () => {},
   onNodeTouchEnd = () => {},
+  pathTree = null,
   selectedNodeIds = [],
   currentNode = null,
+  doneNodeIds = [],
+  doneLinkIds = [],
 }: D3ChartProps) {
   const gLinkRef = useRef<SVGGElement>(null);
   const gNodeRef = useRef<SVGGElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const gNodeAndLinkRef = useRef<SVGGElement>(null);
   const svgContainerRef = useRef<HTMLDivElement>(null);
+  const isPathActive = Boolean(pathTree && pathTree.nodes?.length);
 
   // Create simulation only when tree data changes
   useEffect(() => {
@@ -350,25 +511,41 @@ export default function D3Chart({
     ForceGraph(
       tree,
       selectedNodeIds,
+      pathTree,
       gNodeAndLinkRef,
       gLinkRef,
       gNodeRef,
       svgRef,
+      doneNodeIds,
+      doneLinkIds,
       viewBoxWidth,
-      viewBoxHeight
+      viewBoxHeight,
     );
-    // selectedNodeIds intentionally excluded: color updates handled by separate effect
+    // selectedNodeIds, pathTree, doneNodeIds, doneLinkIds intentionally excluded: updates handled by separate effects
     // Refs are stable and don't need to be dependencies
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tree]);
 
   // Update node colors when selection changes without recreating simulation
   useEffect(() => {
-    updateNodeColors(gNodeRef, selectedNodeIds);
-  }, [selectedNodeIds]);
+    updateNodeColors(gNodeRef, selectedNodeIds, pathTree, doneNodeIds);
+  }, [selectedNodeIds, pathTree, doneNodeIds]);
+
+  // Update link colors when path changes without recreating simulation
+  useEffect(() => {
+    updateLinkColors(gLinkRef, pathTree, doneLinkIds);
+    updateNodeColors(gNodeRef, selectedNodeIds, pathTree, doneNodeIds);
+  }, [pathTree, selectedNodeIds, doneNodeIds, doneLinkIds]);
 
   return (
-    <div ref={svgContainerRef} style={{ height: "85vh", width: "100vw" }}>
+    <div
+      ref={svgContainerRef}
+      style={{
+        height: "85vh",
+        width: "100vw",
+        backgroundColor: isPathActive ? "#f5f5f5" : "transparent",
+      }}
+    >
       <svg
         ref={svgRef}
         style={{ height: "100%", width: "100%" }}
@@ -387,15 +564,39 @@ export default function D3Chart({
           >
             <path d="M 0 0 L 10 5 L 0 10 z" fill={INACTIVE_LINK_COLOR} />
           </marker>
+          <marker
+            id="arrow-active"
+            markerHeight="10"
+            markerUnits="strokeWidth"
+            markerWidth="8"
+            orient="auto"
+            refX="10"
+            refY="5"
+            viewBox="0 0 10 10"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={ACTIVE_LINK_COLOR} />
+          </marker>
+          <marker
+            id="arrow-done"
+            markerHeight="10"
+            markerUnits="strokeWidth"
+            markerWidth="8"
+            orient="auto"
+            refX="10"
+            refY="5"
+            viewBox="0 0 10 10"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={DONE_LINK_COLOR} />
+          </marker>
         </defs>
         <g ref={gNodeAndLinkRef}>
           <g ref={gLinkRef}>
-            {tree.links.map((link) => (
+            {tree.links?.map((link) => (
               <line key={link.id} markerEnd="url(#arrow)" strokeWidth={1.5} />
             ))}
           </g>
           <g ref={gNodeRef}>
-            {tree.nodes.map((node) => (
+            {tree.nodes?.map((node) => (
               <circle
                 className={selectedNodeIds.includes(node.id) ? "selected" : ""}
                 key={node.id}
