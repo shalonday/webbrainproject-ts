@@ -13,37 +13,37 @@ function renderApp(): void {
  * Tests for the main App component routing setup.
  */
 describe("App component", () => {
-  it("renders without crashing", () => {
+  it("renders without crashing", async () => {
     renderApp();
     // App should render the Search page by default
     expect(
-      screen.getByPlaceholderText(/search for a skill or url/i),
+      await screen.findByPlaceholderText(/search for a skill or url/i),
     ).toBeInTheDocument();
   });
 
-  it("includes BrowserRouter", () => {
+  it("includes BrowserRouter", async () => {
     renderApp();
     // If BrowserRouter is present, the app should have routing capability
     // We can verify this by checking that the Search component renders
-    const searchInput = screen.getByPlaceholderText(
+    const searchInput = await screen.findByPlaceholderText(
       /search for a skill or url/i,
     );
     expect(searchInput).toBeInTheDocument();
   });
 
-  it("provides QueryClient to children", () => {
+  it("provides QueryClient to children", async () => {
     renderApp();
     // QueryClient provider should be working (Search page uses queries)
-    const searchInput = screen.getByPlaceholderText(
+    const searchInput = await screen.findByPlaceholderText(
       /search for a skill or url/i,
     );
     expect(searchInput).toBeInTheDocument();
   });
 
-  it("provides SkillTreesContext to children", () => {
+  it("provides SkillTreesContext to children", async () => {
     renderApp();
     // SkillTreesContext should be available to Search page
-    const searchInput = screen.getByPlaceholderText(
+    const searchInput = await screen.findByPlaceholderText(
       /search for a skill or url/i,
     );
     expect(searchInput).toBeInTheDocument();

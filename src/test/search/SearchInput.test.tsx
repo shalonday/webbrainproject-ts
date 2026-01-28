@@ -14,7 +14,7 @@ import {
  * Tests for the Search input box functionality.
  */
 describe("Search input box", () => {
-  it("is focused when tab is pressed once", async () => {
+  it("is focused when tab is pressed twice (skips chatbot FAB)", async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
@@ -23,6 +23,9 @@ describe("Search input box", () => {
     expect(searchInput).toBeInTheDocument();
 
     expect(document.body).toHaveFocus();
+    // First tab focuses the chatbot FAB
+    await user.tab();
+    // Second tab focuses the search input
     await user.tab();
     expect(searchInput).toHaveFocus();
   });
