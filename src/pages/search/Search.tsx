@@ -12,7 +12,8 @@ import {
   Tooltip,
 } from "@mui/material";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 import { createPerkAPIClient, RAGChatbot } from "wbp-chatbot";
 
 import type { WBNode } from "../../types/types";
@@ -21,6 +22,7 @@ import { PathList } from "./components/PathList";
 import { RecommendedList } from "./components/RecommendedList";
 import { ResultsList } from "./components/ResultsList";
 import { SearchInput } from "./components/SearchInput";
+import { DEFAULT_START_NODE_ID } from "./search-utils";
 import SearchPageChart from "./SearchPageChart";
 import { useSearchPageState } from "./useSearchPageState";
 
@@ -31,6 +33,7 @@ import { useSearchPageState } from "./useSearchPageState";
  * @returns {ReactNode} The rendered search page.
  */
 function Search(): ReactNode {
+  const { endId } = useParams<{ startId?: string; endId?: string }>();
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const apiClient = useMemo(() => createPerkAPIClient(), []);
   const {
@@ -55,6 +58,18 @@ function Search(): ReactNode {
     setSearchTerm,
     universalTree,
   } = useSearchPageState();
+
+  // Auto-generate path from URL params
+  useEffect(() => {
+    if (endId && !pathTree) {
+      // Simulate selecting the result and generating path
+      handleResultSelect(endId);
+      // Wait for next tick to ensure selectedResultId is set
+      setTimeout(() => {
+        handleGeneratePath();
+      }, 0);
+    }
+  }, [endId, handleGeneratePath, handleResultSelect, pathTree]);
 
   /**
    * Handles clicking on a path node.
@@ -216,6 +231,7 @@ function Search(): ReactNode {
         <DialogContent sx={{ padding: 0, height: "80vh" }}>
           <RAGChatbot
             apiClient={apiClient}
+            startNodeId={DEFAULT_START_NODE_ID}
             systemPrompt="You are a helpful assistant for the Web Brain Project Search Page. Assist users in searching for URLs or skills, and assist them in adding new material if the material they are looking for does not exist yet."
             customInstructions=""
             sx={{ height: "100%" }}
