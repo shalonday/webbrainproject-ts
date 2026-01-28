@@ -1,5 +1,19 @@
-import { Box, Card, CircularProgress } from "@mui/material";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import CloseIcon from "@mui/icons-material/Close";
+import {
+  Box,
+  Card,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Fab,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
 import type { ReactNode } from "react";
+import { useMemo, useState } from "react";
+import { createPerkAPIClient, RAGChatbot } from "wbp-chatbot";
 
 import type { WBNode } from "../../types/types";
 import { ActionButtons } from "./components/ActionButtons";
@@ -17,6 +31,8 @@ import { useSearchPageState } from "./useSearchPageState";
  * @returns {ReactNode} The rendered search page.
  */
 function Search(): ReactNode {
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const apiClient = useMemo(() => createPerkAPIClient(), []);
   const {
     currentNode,
     currentNodeId,
@@ -81,6 +97,22 @@ function Search(): ReactNode {
 
   return (
     <Box sx={{ position: "relative", width: "100%", height: "100vh" }}>
+      <Tooltip title="Open chatbot">
+        <Fab
+          aria-label="Open chatbot"
+          color="primary"
+          onClick={() => setIsChatbotOpen(true)}
+          sx={{
+            position: "absolute",
+            top: 24,
+            right: 24,
+            zIndex: 1100,
+          }}
+        >
+          <ChatBubbleOutlineIcon />
+        </Fab>
+      </Tooltip>
+
       {/* Background Chart */}
       {universalTree && (
         <SearchPageChart
@@ -164,6 +196,32 @@ function Search(): ReactNode {
           onMoveForward={handleMoveForward}
         />
       </Card>
+
+      <Dialog
+        open={isChatbotOpen}
+        onClose={() => setIsChatbotOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
+          Web Brain Project Chatbot
+          <IconButton
+            aria-label="Close chatbot"
+            onClick={() => setIsChatbotOpen(false)}
+            sx={{ marginLeft: "auto" }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ padding: 0, height: "80vh" }}>
+          <RAGChatbot
+            apiClient={apiClient}
+            systemPrompt="You are a helpful assistant for the Web Brain Project Search Page. Assist users in searching for URLs or skills, and assist them in adding new material if the material they are looking for does not exist yet."
+            customInstructions=""
+            sx={{ height: "100%" }}
+          />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

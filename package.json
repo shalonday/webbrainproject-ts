@@ -22,7 +22,8 @@
     "d3": "^7.9.0",
     "msw": "^2.12.7",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "wbp-chatbot": "github:shalonday/wbp-chatbot"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
