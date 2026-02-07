@@ -232,8 +232,6 @@ function Search(): ReactNode {
           <RAGChatbot
             apiClient={apiClient}
             startNodeId={DEFAULT_START_NODE_ID}
-            systemPrompt="You are a helpful assistant for the Web Brain Project Search Page. Assist users in searching for URLs or skills, and assist them in adding new material if the material they are looking for does not exist yet."
-            customInstructions=""
             sx={{ height: "100%" }}
           />
         </DialogContent>

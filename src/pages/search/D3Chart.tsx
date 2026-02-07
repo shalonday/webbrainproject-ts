@@ -477,12 +477,12 @@ export default function D3Chart({
         </defs>
         <g ref={gNodeAndLinkRef}>
           <g ref={gLinkRef}>
-            {tree.links?.map((link) => (
+            {tree.links?.filter(link => link?.id).map((link) => (
               <line key={link.id} markerEnd="url(#arrow)" strokeWidth={1.5} />
             ))}
           </g>
           <g ref={gNodeRef}>
-            {tree.nodes?.map((node) => (
+            {tree.nodes?.filter(node => node?.id).map((node) => (
               <circle
                 className={selectedNodeIds.includes(node.id) ? "selected" : ""}
                 key={node.id}
@@ -492,25 +492,20 @@ export default function D3Chart({
                 onTouchStart={onNodeTouchStart}
                 strokeWidth={1.5}
               >
-                {currentNode && currentNode?.id === node.id ? (
-                  <>
-                    <animate
-                      attributeName="r"
-                      begin="0s"
-                      dur="1.5s"
-                      repeatCount="indefinite"
-                      values={
-                        currentNode?.type === "skill"
-                          ? `${MINOR_RADIUS};${
-                              MINOR_RADIUS * 2
-                            };${MINOR_RADIUS}`
-                          : `${MINOR_RADIUS};${
-                              MINOR_RADIUS * 2
-                            };${MINOR_RADIUS}`
-                      }
-                    />
-                  </>
-                ) : null}
+                {currentNode && currentNode?.id === node.id && (
+                  <animate
+                    key={`animate-${node.id}`}
+                    attributeName="r"
+                    begin="0s"
+                    dur="1.5s"
+                    repeatCount="indefinite"
+                    values={
+                      currentNode?.type === "skill"
+                        ? `${MINOR_RADIUS};${MINOR_RADIUS * 2};${MINOR_RADIUS}`
+                        : `${MINOR_RADIUS};${MINOR_RADIUS * 2};${MINOR_RADIUS}`
+                    }
+                  />
+                )}
               </circle>
             ))}
           </g>
