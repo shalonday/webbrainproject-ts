@@ -477,6 +477,7 @@ export default function D3Chart({
         </defs>
         <g ref={gNodeAndLinkRef}>
           <g ref={gLinkRef}>
+<<<<<<< Updated upstream
             {tree.links?.map((link) => (
               <line key={link.id} markerEnd="url(#arrow)" strokeWidth={1.5} />
             ))}
@@ -495,12 +496,39 @@ export default function D3Chart({
                 {currentNode && currentNode?.id === node.id ? (
                   <>
                     <animate
+=======
+            {tree.links
+              ?.filter((link) => link?.id)
+              .map((link) => (
+                <line key={link.id} markerEnd="url(#arrow)" strokeWidth={1.5} />
+              ))}
+          </g>
+          <g ref={gNodeRef}>
+            {tree.nodes
+              ?.filter((node) => node?.id)
+              .map((node) => (
+                <circle
+                  className={
+                    selectedNodeIds.includes(node.id) ? "selected" : ""
+                  }
+                  key={node.id}
+                  // Closure captures node.id to pass to click handler
+                  onClick={() => onNodeClick(node.id)}
+                  onTouchEnd={onNodeTouchEnd}
+                  onTouchStart={onNodeTouchStart}
+                  strokeWidth={1.5}
+                >
+                  {currentNode && currentNode?.id === node.id && (
+                    <animate
+                      key={`animate-${node.id}`}
+>>>>>>> Stashed changes
                       attributeName="r"
                       begin="0s"
                       dur="1.5s"
                       repeatCount="indefinite"
                       values={
                         currentNode?.type === "skill"
+<<<<<<< Updated upstream
                           ? `${MINOR_RADIUS};${
                               MINOR_RADIUS * 2
                             };${MINOR_RADIUS}`
@@ -513,6 +541,15 @@ export default function D3Chart({
                 ) : null}
               </circle>
             ))}
+=======
+                          ? `${MINOR_RADIUS};${MINOR_RADIUS * 2};${MINOR_RADIUS}`
+                          : `${MINOR_RADIUS};${MINOR_RADIUS * 2};${MINOR_RADIUS}`
+                      }
+                    />
+                  )}
+                </circle>
+              ))}
+>>>>>>> Stashed changes
           </g>
         </g>
       </svg>

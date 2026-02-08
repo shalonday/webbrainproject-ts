@@ -255,19 +255,18 @@ describe("Path Traversal with Move Forward", () => {
       const moveForwardButton = screen.getByRole("button", {
         name: /move forward/i,
       });
+      const expectedUrl =
+        "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Environment_setup/Dealing_with_files";
+      const windowOpenSpy = vi.spyOn(window, "open");
       await user.click(moveForwardButton);
 
-      // Should call URL node handler
+      // Should call URL node handler (opens URL in new tab)
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          "Landed on URL node:",
-          expect.objectContaining({
-            type: "url",
-          }),
-        );
+        expect(windowOpenSpy).toHaveBeenCalledWith(expectedUrl, "_blank");
       });
 
       consoleSpy.mockRestore();
+      windowOpenSpy.mockRestore();
     },
   );
 

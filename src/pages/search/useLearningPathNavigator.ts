@@ -78,8 +78,7 @@ export function useLearningPathNavigator({
       return;
     }
     if (node.type === "url") {
-      // eslint-disable-next-line no-console
-      console.log("Landed on URL node:", node);
+      window.open(node.name, "_blank");
       return;
     }
     // eslint-disable-next-line no-console
