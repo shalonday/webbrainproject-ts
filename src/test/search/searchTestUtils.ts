@@ -133,3 +133,56 @@ export function countTreeRequests(requests: string[]): number {
 export function countPathRequests(requests: string[]): number {
   return requests.filter((req) => req.includes(`${BASE_URL}/paths`)).length;
 }
+
+/**
+ * Navigates to the first non-E skill node by repeatedly clicking the Move Forward button.
+ * This helper skips past the E node and any URL nodes to find the first skill node that is not E.
+ *
+ * @param user - The userEvent instance for interaction.
+ * @param moveForwardButton - The Move Forward button element.
+ */
+export async function navigateToSkillNode(
+  user: ReturnType<typeof userEvent.setup>,
+  moveForwardButton: HTMLElement,
+  options?: {
+    maxAttempts?: number;
+  },
+): Promise<void> {
+  const maxAttempts = options?.maxAttempts ?? 10;
+  let skillNodeFound = false;
+  let attempts = 0;
+
+  while (!skillNodeFound && attempts < maxAttempts) {
+    await user.click(moveForwardButton);
+
+    await waitFor(
+      () => {
+        // The current node is marked on the D3 chart.
+        const currentNode = document.querySelector(
+          "circle[data-current=\"true\"]",
+        ) as SVGCircleElement | null;
+        if (!currentNode) {
+          throw new Error("Current node not found");
+        }
+
+        const nodeData = (currentNode as unknown as { __data__?: WBNode })
+          .__data__;
+        if (!nodeData) {
+          throw new Error("Current node data not found");
+        }
+
+        const isSkillNode = nodeData.type === "skill";
+        const isNotENode = nodeData.name !== "E";
+
+        if (isSkillNode && isNotENode) {
+          skillNodeFound = true;
+        }
+      },
+      { timeout: 500 },
+    ).catch(() => {
+      // If it times out, we didn't land on a matching skill node yet
+    });
+
+    attempts++;
+  }
+}
