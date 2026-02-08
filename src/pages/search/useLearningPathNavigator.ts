@@ -73,8 +73,7 @@ export function useLearningPathNavigator({
 
   const handleLandOnNode = useCallback((node: WBNode) => {
     if (node.type === "skill") {
-      // eslint-disable-next-line no-console
-      console.log("Landed on skill node:", node);
+      window.open(`/skill-test/${node.id}`, "_blank");
       return;
     }
     if (node.type === "url") {
