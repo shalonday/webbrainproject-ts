@@ -41,6 +41,8 @@ export function getNodeFill(
   selectedIds: string[],
   doneNodeIds: string[],
 ): string {
+  if (!node || !node.id) return INACTIVE_SKILL_FILL;
+
   const isDone = doneNodeIds.includes(node.id);
   const isSelected = selectedIds.includes(node.id);
 
@@ -65,6 +67,7 @@ export function getNodeFill(
  * @returns True when the node exists in the path tree.
  */
 export function isNodeInPath(node: NodeLike, pathTree: Tree | null): boolean {
+  if (!node || !node.id) return false;
   if (!pathTree || pathTree?.nodes?.length === 0) return false;
   return pathTree.nodes.some((n) => n.id === node.id);
 }
@@ -78,6 +81,7 @@ export function isNodeInPath(node: NodeLike, pathTree: Tree | null): boolean {
  * @returns Opacity value between 0 and 1.
  */
 export function getNodeOpacity(node: NodeLike, pathTree: Tree | null): number {
+  if (!node) return 1;
   if (!pathTree || pathTree?.nodes?.length === 0) return 1;
   return isNodeInPath(node, pathTree) ? 1 : 0.25;
 }
@@ -90,6 +94,7 @@ export function getNodeOpacity(node: NodeLike, pathTree: Tree | null): number {
  * @returns True if the link is in the path tree.
  */
 export function isLinkInPath(link: LinkLike, pathTree: Tree | null): boolean {
+  if (!link || !link.source || !link.target) return false;
   if (!pathTree || pathTree?.links?.length === 0) return false;
 
   const sourceId = isEndpointNode(link.source)
@@ -116,6 +121,7 @@ export function isLinkInPath(link: LinkLike, pathTree: Tree | null): boolean {
  * @returns Opacity value between 0 and 1.
  */
 export function getLinkOpacity(link: LinkLike, pathTree: Tree | null): number {
+  if (!link) return 1;
   if (!pathTree || pathTree?.links?.length === 0) return 1;
   return isLinkInPath(link, pathTree) ? 1 : 0.2;
 }
@@ -128,6 +134,7 @@ export function getLinkOpacity(link: LinkLike, pathTree: Tree | null): number {
  * @returns True if the link is marked as done.
  */
 export function isLinkDone(link: LinkLike, doneLinkIds: string[]): boolean {
+  if (!link || !link.id) return false;
   return doneLinkIds.includes(link.id);
 }
 
@@ -144,6 +151,7 @@ export function getLinkColor(
   pathTree: Tree | null,
   doneLinkIds: string[],
 ): string {
+  if (!link) return INACTIVE_LINK_COLOR;
   if (isLinkDone(link, doneLinkIds)) return DONE_LINK_COLOR;
   return isLinkInPath(link, pathTree) ? ACTIVE_LINK_COLOR : INACTIVE_LINK_COLOR;
 }
