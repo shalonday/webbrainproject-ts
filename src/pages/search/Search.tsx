@@ -22,6 +22,7 @@ import { PathList } from "./components/PathList";
 import { RecommendedList } from "./components/RecommendedList";
 import { ResultsList } from "./components/ResultsList";
 import { SearchInput } from "./components/SearchInput";
+import { SkillModal } from "./components/SkillModal";
 import { DEFAULT_START_NODE_ID } from "./search-utils";
 import SearchPageChart from "./SearchPageChart";
 import { useSearchPageState } from "./useSearchPageState";
@@ -50,11 +51,15 @@ function Search(): ReactNode {
     isLoadingQuery,
     isMoveForwardEnabled,
     isSearchActive,
+    isSkillConfirmed,
+    isSkillModalOpen,
     pathTree,
     recommendedNodes,
     searchResults,
     searchTerm,
     selectedResultId,
+    setIsSkillConfirmed,
+    setIsSkillModalOpen,
     setSearchTerm,
     universalTree,
   } = useSearchPageState();
@@ -70,6 +75,21 @@ function Search(): ReactNode {
       }, 0);
     }
   }, [endId, handleGeneratePath, handleResultSelect, pathTree]);
+
+  /**
+   * Handles closing the skill modal without confirmation and allowing progress.
+   *
+   * @todo Future enhancement: Add skip mastery flow
+   * - Add second radio button option: "Skip testing on this skill"
+   * - Display warning message when user selects skip option
+   * - Track skipped nodes separately in progress state (distinct from completed nodes)
+   * - Render skipped nodes in different color (e.g., amber/yellow) vs completed (green)
+   */
+  const handleCloseSkillModal = () => {
+    setIsSkillModalOpen(false);
+    // Allow Move Forward to proceed even without confirmation
+    setIsSkillConfirmed(true);
+  };
 
   /**
    * Handles clicking on a path node.
@@ -206,7 +226,13 @@ function Search(): ReactNode {
           hasSearchResults={searchResults.length > 0}
           hasPath={Boolean(pathTree && pathTree.nodes.length > 0)}
           selectedResultId={selectedResultId}
-          isMoveForwardEnabled={isMoveForwardEnabled()}
+          isMoveForwardEnabled={
+            currentNode?.type === "skill" &&
+            currentNode.id !== DEFAULT_START_NODE_ID &&
+            !isSkillConfirmed
+              ? false
+              : isMoveForwardEnabled()
+          }
           onGeneratePath={handleGeneratePath}
           onMoveForward={handleMoveForward}
         />
@@ -236,6 +262,14 @@ function Search(): ReactNode {
           />
         </DialogContent>
       </Dialog>
+
+      <SkillModal
+        isOpen={isSkillModalOpen}
+        skillName={currentNode?.name}
+        onClose={handleCloseSkillModal}
+        onConfirm={() => setIsSkillConfirmed(true)}
+        isConfirmed={isSkillConfirmed}
+      />
     </Box>
   );
 }

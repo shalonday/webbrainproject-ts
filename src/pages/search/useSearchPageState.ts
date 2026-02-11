@@ -20,11 +20,15 @@ interface UseSearchPageStateResult {
   isLoadingQuery: boolean;
   isMoveForwardEnabled: () => boolean;
   isSearchActive: boolean;
+  isSkillConfirmed: boolean;
+  isSkillModalOpen: boolean;
   pathTree: Tree | null;
   recommendedNodes: WBNode[];
   searchResults: WBNode[];
   searchTerm: string;
   selectedResultId: string | null;
+  setIsSkillConfirmed: (value: boolean) => void;
+  setIsSkillModalOpen: (value: boolean) => void;
   setSearchTerm: (value: string) => void;
   universalTree: Tree | null;
 }
@@ -57,7 +61,11 @@ export function useSearchPageState(): UseSearchPageStateResult {
     handleGeneratePath,
     handleMoveForward,
     isMoveForwardEnabled,
+    isSkillConfirmed,
+    isSkillModalOpen,
     resetPath,
+    setIsSkillConfirmed,
+    setIsSkillModalOpen,
   } = useLearningPathNavigator({
     universalTree: universalTree ?? null,
     selectedResultId,
@@ -115,11 +123,15 @@ export function useSearchPageState(): UseSearchPageStateResult {
     isLoadingQuery,
     isMoveForwardEnabled,
     isSearchActive,
+    isSkillConfirmed,
+    isSkillModalOpen,
     pathTree,
     recommendedNodes,
     searchResults,
     searchTerm,
     selectedResultId,
+    setIsSkillConfirmed,
+    setIsSkillModalOpen,
     setSearchTerm,
     universalTree: universalTree ?? null,
   };
