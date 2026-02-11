@@ -135,8 +135,36 @@ export function countPathRequests(requests: string[]): number {
 }
 
 /**
- * Navigates to the first non-E skill node by repeatedly clicking the Move Forward button.
- * This helper skips past the E node and any URL nodes to find the first skill node that is not E.
+ * Closes the skill modal if it's open, allowing tests to proceed past skill nodes.
+ *
+ * @param user - The userEvent instance for interaction.
+ */
+export async function closeSkillModalIfOpen(
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<void> {
+  try {
+    const closeButton = screen.queryByRole("button", { name: /close/i });
+    // Check if it's the close button from the skill modal (not some other close button)
+    if (closeButton && closeButton.closest('[aria-labelledby*="_r_"]')) {
+      await user.click(closeButton);
+      // Wait for modal to close
+      await waitFor(
+        () => {
+          const modal = screen.queryByRole("dialog", {
+            name: /skill assessment/i,
+          });
+          expect(modal).not.toBeInTheDocument();
+        },
+        { timeout: 500 },
+      );
+    }
+  } catch {
+    // Modal wasn't open, continuing...
+  }
+}
+
+/**
+ * Navigates to the next skill node in the path by clicking Move Forward.
  *
  * @param user - The userEvent instance for interaction.
  * @param moveForwardButton - The Move Forward button element.
@@ -159,7 +187,7 @@ export async function navigateToSkillNode(
       () => {
         // The current node is marked on the D3 chart.
         const currentNode = document.querySelector(
-          "circle[data-current=\"true\"]",
+          'circle[data-current="true"]',
         ) as SVGCircleElement | null;
         if (!currentNode) {
           throw new Error("Current node not found");

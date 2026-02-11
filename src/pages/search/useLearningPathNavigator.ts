@@ -23,8 +23,12 @@ interface UseLearningPathNavigatorResult {
   handleGeneratePath: () => Promise<void>;
   handleMoveForward: () => void;
   isMoveForwardEnabled: () => boolean;
+  isSkillModalOpen: boolean;
+  isSkillConfirmed: boolean;
   pathTree: Tree | null;
   resetPath: () => void;
+  setIsSkillConfirmed: (value: boolean) => void;
+  setIsSkillModalOpen: (value: boolean) => void;
 }
 
 /**
@@ -57,6 +61,8 @@ export function useLearningPathNavigator({
   const [doneNodeIds, setDoneNodeIds] = useState<string[]>([]);
   const [doneLinkIds, setDoneLinkIds] = useState<string[]>([]);
   const [visitedNodeIds, setVisitedNodeIds] = useState<string[]>([]);
+  const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+  const [isSkillConfirmed, setIsSkillConfirmed] = useState(false);
 
   const currentNode = useMemo(
     () => findCurrentNode(pathTree, currentNodeId),
@@ -72,8 +78,11 @@ export function useLearningPathNavigator({
   }, []);
 
   const handleLandOnNode = useCallback((node: WBNode) => {
-    if (node.type === "skill") {
+    if (node.type === "skill" && node.id !== DEFAULT_START_NODE_ID) {
+      // Open the skill-test tab and show modal for confirmation
       window.open(`/skill-test/${node.id}`, "_blank");
+      setIsSkillModalOpen(true);
+      setIsSkillConfirmed(false);
       return;
     }
     if (node.type === "url") {
@@ -201,7 +210,11 @@ export function useLearningPathNavigator({
     handleGeneratePath,
     handleMoveForward,
     isMoveForwardEnabled: isMoveForwardEnabledCb,
+    isSkillConfirmed,
+    isSkillModalOpen,
     pathTree,
     resetPath,
+    setIsSkillConfirmed,
+    setIsSkillModalOpen,
   };
 }
