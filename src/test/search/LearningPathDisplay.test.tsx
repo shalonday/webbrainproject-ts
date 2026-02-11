@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { WBNode } from "../../types/types";
 import { server } from "../setup";
 import {
+  closeSkillModalIfOpen,
   performSearch,
   renderSearchPage,
   waitForGraphToLoad,
@@ -58,6 +59,8 @@ describe("Learning Path Display", () => {
           { timeout: 10000 },
         );
 
+        await closeSkillModalIfOpen(user);
+
         // Verify path nodes are displayed
         const pathNodes = screen.getAllByRole("button");
         const pathNodeButtons = pathNodes.filter((button) => {
@@ -101,6 +104,8 @@ describe("Learning Path Display", () => {
         },
         { timeout: 10000 },
       );
+
+      await closeSkillModalIfOpen(user);
 
       // Get all list items and find the ones with node data
       const listItems = screen.getAllByRole("button");
@@ -150,6 +155,8 @@ describe("Learning Path Display", () => {
         },
         { timeout: 10000 },
       );
+
+      await closeSkillModalIfOpen(user);
 
       // Get all list items and find the ones with node data
       const listItems = screen.getAllByRole("button");
