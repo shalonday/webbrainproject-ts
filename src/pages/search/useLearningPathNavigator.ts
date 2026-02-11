@@ -89,8 +89,6 @@ export function useLearningPathNavigator({
       window.open(node.name, "_blank");
       return;
     }
-    // eslint-disable-next-line no-console
-    console.log("Landed on node:", node);
   }, []);
 
   const handleGeneratePath = useCallback(async () => {
