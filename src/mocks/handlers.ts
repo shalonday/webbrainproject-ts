@@ -344,6 +344,55 @@ const mockTreeData: Tree = {
   ],
 };
 
+const chatbotHandlers = (baseUrl: string) => [
+  http.post(`${baseUrl}/chatbot/chat`, async ({ request }) => {
+    const body = (await request.json()) as {
+      message: string;
+      sessionId?: string;
+    };
+
+    return HttpResponse.json({
+      message: `You asked about: ${body.message}. Here are some learning resources.`,
+      relatedMaterials: [
+        {
+          nodeId: "550e8400-e29b-41d4-a716-446655440000",
+          name: "JavaScript Basics",
+          type: "url",
+        },
+        {
+          nodeId: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+          name: "MDN JavaScript Tutorial",
+          type: "url",
+        },
+      ],
+      suggestedActions: ["Learn more", "Request new materials"],
+    });
+  }),
+  http.post(`${baseUrl}/chatbot/search`, () => {
+    return HttpResponse.json({
+      results: [
+        {
+          node: {
+            id: "550e8400-e29b-41d4-a716-446655440000",
+            name: "JavaScript Basics",
+          },
+          similarity: 0.95,
+        },
+        {
+          node: {
+            id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+            name: "MDN JavaScript Tutorial",
+          },
+          similarity: 0.87,
+        },
+      ],
+    });
+  }),
+  http.post(`${baseUrl}/chatbot/material-request`, () => {
+    return HttpResponse.json({ success: true });
+  }),
+];
+
 export const handlers = [
   http.get(`${BASE_URL}/tree`, () => {
     return HttpResponse.json(mockTreeData);
@@ -612,4 +661,5 @@ export const handlers = [
       ],
     });
   }),
+  ...chatbotHandlers(BASE_URL),
 ];
