@@ -14,8 +14,9 @@ import {
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { createPerkAPIClient, RAGChatbot } from "wbp-chatbot";
 
+import { createPerkAPIClient } from "../../api/perkClient";
+import { RAGChatbot } from "../../components/RAGChatbot";
 import type { WBNode } from "../../types/types";
 import { ActionButtons } from "./components/ActionButtons";
 import { PathList } from "./components/PathList";

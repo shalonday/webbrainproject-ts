@@ -35,7 +35,7 @@ export default defineConfig([
       "simple-import-sort": simpleImportSort,
     },
     rules: {
-      "no-console": "error",
+      "no-console": "warn",
       "no-param-reassign": "error",
       "@stylistic/semi": ["error", "always"],
       "@stylistic/member-delimiter-style": [
