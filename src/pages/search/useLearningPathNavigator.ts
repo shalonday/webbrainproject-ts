@@ -40,7 +40,7 @@ interface UseLearningPathNavigatorResult {
  */
 function findCurrentNode(pathTree: Tree | null, currentNodeId: string | null) {
   if (!pathTree || !currentNodeId) return null;
-  return pathTree.nodes.find((node) => node.id === currentNodeId) || null;
+  return pathTree.nodes.find((node) => node.uuid === currentNodeId) || null;
 }
 
 /**
@@ -78,9 +78,9 @@ export function useLearningPathNavigator({
   }, []);
 
   const handleLandOnNode = useCallback((node: WBNode) => {
-    if (node.type === "skill" && node.id !== DEFAULT_START_NODE_ID) {
+    if (node.type === "skill" && node.uuid !== DEFAULT_START_NODE_ID) {
       // Open the skill-test tab and show modal for confirmation
-      window.open(`/skill-test/${node.id}`, "_blank");
+      window.open(`/skill-test/${node.uuid}`, "_blank");
       setIsSkillModalOpen(true);
       setIsSkillConfirmed(false);
       return;
@@ -109,10 +109,10 @@ export function useLearningPathNavigator({
       const nextPathTree: Tree = { nodes: data.nodes, links: data.links };
       setPathTree(nextPathTree);
       setCurrentNodeId(
-        nextPathTree.nodes.length > 0 ? nextPathTree.nodes[0].id : null,
+        nextPathTree.nodes.length > 0 ? nextPathTree.nodes[0].uuid : null,
       );
       setVisitedNodeIds((prev) =>
-        nextPathTree.nodes.length > 0 ? [nextPathTree.nodes[0].id] : prev,
+        nextPathTree.nodes.length > 0 ? [nextPathTree.nodes[0].uuid] : prev,
       );
 
       if (nextPathTree.nodes.length > 0) {
@@ -141,8 +141,8 @@ export function useLearningPathNavigator({
     let targetNode: WBNode | null = null;
 
     for (const link of outgoingLinks) {
-      const node = pathTree.nodes.find((n) => n.id === link.target);
-      if (node && !nodeIsDone(doneNodeIds, node.id)) {
+      const node = pathTree.nodes.find((n) => n.uuid === link.target);
+      if (node && !nodeIsDone(doneNodeIds, node.uuid)) {
         if (
           node.type === "url" &&
           !hasAllSkillPrerequisitesDone(universalTree, node, doneNodeIds, [
@@ -174,17 +174,17 @@ export function useLearningPathNavigator({
     if (targetLink) {
       if (targetNode.type === "url") {
         const allIncomingLinks = pathTree.links.filter(
-          (link) => link.target === targetNode?.id,
+          (link) => link.target === targetNode?.uuid,
         );
-        const incomingLinkIds = allIncomingLinks.map((link) => link.id);
+        const incomingLinkIds = allIncomingLinks.map((link) => link.uuid);
         setDoneLinkIds((prev) => [...prev, ...incomingLinkIds]);
       } else {
-        setDoneLinkIds((prev) => [...prev, targetLink.id]);
+        setDoneLinkIds((prev) => [...prev, targetLink.uuid]);
       }
     }
 
-    setCurrentNodeId(targetNode.id);
-    setVisitedNodeIds((prev) => [...prev, targetNode?.id]);
+    setCurrentNodeId(targetNode.uuid);
+    setVisitedNodeIds((prev) => [...prev, targetNode?.uuid]);
     handleLandOnNode(targetNode);
   }, [
     currentNodeId,

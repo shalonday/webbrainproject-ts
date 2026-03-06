@@ -42,17 +42,17 @@ export function PathList({
       </Typography>
       <List>
         {pathNodes.map((node) => (
-          <ListItem key={node.id} disablePadding>
+          <ListItem key={node.uuid} disablePadding>
             <ListItemButton
               onClick={() => onPathNodeClick(node)}
               sx={{
                 borderRadius: 2,
                 mb: 0.5,
                 backgroundColor:
-                  currentNodeId === node.id ? "primary.light" : "transparent",
+                  currentNodeId === node.uuid ? "primary.light" : "transparent",
                 "&:hover": {
                   backgroundColor:
-                    currentNodeId === node.id
+                    currentNodeId === node.uuid
                       ? "primary.light"
                       : "action.hover",
                 },
@@ -60,7 +60,7 @@ export function PathList({
             >
               <ListItemText
                 primary={node.name}
-                secondary={`Type: ${node.type}${doneNodeIds.includes(node.id) ? " • Done" : node.id === currentNodeId ? " • Current" : ""}`}
+                secondary={`Type: ${node.type}${doneNodeIds.includes(node.uuid) ? " • Done" : node.uuid === currentNodeId ? " • Current" : ""}`}
                 primaryTypographyProps={{
                   fontWeight: 500,
                 }}

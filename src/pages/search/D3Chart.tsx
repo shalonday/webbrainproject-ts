@@ -116,7 +116,7 @@ function createSimulation(
     .forceSimulation(nodes)
     .force(
       "link",
-      d3.forceLink<SimulatedWBNode, (typeof links)[0]>(links).id((d) => d.id),
+      d3.forceLink<SimulatedWBNode, (typeof links)[0]>(links).id((d) => d.uuid),
     )
     .force("charge", d3.forceManyBody().strength(-30))
     .force("x", d3.forceX(width / 2))
@@ -478,34 +478,38 @@ export default function D3Chart({
         <g ref={gNodeAndLinkRef}>
           <g ref={gLinkRef}>
             {tree.links
-              ?.filter((link) => link?.id)
+              ?.filter((link) => link?.uuid)
               .map((link) => (
-                <line key={link.id} markerEnd="url(#arrow)" strokeWidth={1.5} />
+                <line
+                  key={link.uuid}
+                  markerEnd="url(#arrow)"
+                  strokeWidth={1.5}
+                />
               ))}
           </g>
           <g ref={gNodeRef}>
             {tree.nodes
-              ?.filter((node) => node?.id)
+              ?.filter((node) => node?.uuid)
               .map((node) => (
                 <circle
                   className={
-                    selectedNodeIds.includes(node.id) ? "selected" : ""
+                    selectedNodeIds.includes(node.uuid) ? "selected" : ""
                   }
                   data-current={
-                    currentNode && currentNode.id === node.id
+                    currentNode && currentNode.uuid === node.uuid
                       ? "true"
                       : undefined
                   }
-                  key={node.id}
-                  // Closure captures node.id to pass to click handler
-                  onClick={() => onNodeClick(node.id)}
+                  key={node.uuid}
+                  // Closure captures node.uuid to pass to click handler
+                  onClick={() => onNodeClick(node.uuid)}
                   onTouchEnd={onNodeTouchEnd}
                   onTouchStart={onNodeTouchStart}
                   strokeWidth={1.5}
                 >
-                  {currentNode && currentNode?.id === node.id && (
+                  {currentNode && currentNode?.uuid === node.uuid && (
                     <animate
-                      key={`animate-${node.id}`}
+                      key={`animate-${node.uuid}`}
                       attributeName="r"
                       begin="0s"
                       dur="1.5s"

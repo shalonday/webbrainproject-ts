@@ -229,7 +229,7 @@ function Search(): ReactNode {
           selectedResultId={selectedResultId}
           isMoveForwardEnabled={
             currentNode?.type === "skill" &&
-            currentNode.id !== DEFAULT_START_NODE_ID &&
+            currentNode.uuid !== DEFAULT_START_NODE_ID &&
             !isSkillConfirmed
               ? false
               : isMoveForwardEnabled()

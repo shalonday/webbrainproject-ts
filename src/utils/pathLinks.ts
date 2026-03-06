@@ -20,8 +20,8 @@ export function buildResultLinks(
   startNodeId: string = DEFAULT_START_NODE_ID,
 ): Array<{ nodeId: string; name: string; link: string }> {
   return results.map((result) => ({
-    nodeId: result.node.id,
+    nodeId: result.node.uuid,
     name: result.node.name,
-    link: buildPathLink(startNodeId, result.node.id),
+    link: buildPathLink(startNodeId, result.node.uuid),
   }));
 }

@@ -64,18 +64,18 @@ export function hasAllSkillPrerequisitesDone(
   if (!universalTree || urlNode.type !== "url") return true;
 
   const prerequisiteNodeIds = universalTree.links
-    .filter((link) => link.target === urlNode.id)
+    .filter((link) => link.target === urlNode.uuid)
     .map((link) => link.source);
 
   const prerequisiteNodes = universalTree.nodes.filter((node) =>
-    prerequisiteNodeIds.includes(node.id),
+    prerequisiteNodeIds.includes(node.uuid),
   );
 
   const skillPrerequisites = prerequisiteNodes.filter(
     (node) => node.type === "skill",
   );
   const allDoneIds = [...doneNodeIds, ...additionalDoneIds];
-  return skillPrerequisites.every((node) => allDoneIds.includes(node.id));
+  return skillPrerequisites.every((node) => allDoneIds.includes(node.uuid));
 }
 
 /**
@@ -102,8 +102,8 @@ export function findUndoneBranchTarget(
     if (outgoingLinks.length <= 1) continue;
 
     for (const link of outgoingLinks) {
-      const node = pathTree.nodes.find((n) => n.id === link.target);
-      if (node && !nodeIsDone(doneNodeIds, node.id)) {
+      const node = pathTree.nodes.find((n) => n.uuid === link.target);
+      if (node && !nodeIsDone(doneNodeIds, node.uuid)) {
         return { node, link };
       }
     }

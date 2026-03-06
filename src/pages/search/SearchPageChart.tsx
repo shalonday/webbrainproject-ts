@@ -37,7 +37,7 @@ function SearchPageChart({
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
 
   // Prioritize path nodes over search highlights
-  const pathNodeIds = pathTree?.nodes?.map((node) => node.id) || [];
+  const pathNodeIds = pathTree?.nodes?.map((node) => node.uuid) || [];
   const allSelectedNodeIds =
     pathNodeIds.length > 0
       ? pathNodeIds

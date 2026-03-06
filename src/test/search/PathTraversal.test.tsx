@@ -354,8 +354,8 @@ describe("Path Traversal with Move Forward", () => {
           const data = (currentNode as unknown as { __data__?: WBNode }).__data__;
           expect(data).toBeTruthy();
 
-          if (data?.id && data.id !== lastNodeId) {
-            lastNodeId = data.id;
+          if (data?.uuid && data.uuid !== lastNodeId) {
+            lastNodeId = data.uuid;
             return data;
           }
 

@@ -1,13 +1,13 @@
 // Graph-related type definitions
 
 export interface WBNode {
-  id: string;
+  uuid: string;
   type: "skill" | "url";
   name: string;
 }
 
 export interface Link {
-  id: string;
+  uuid: string;
   source: string;
   target: string;
 }
@@ -25,13 +25,13 @@ export interface Tree {
  * Neo4j node types
  */
 export interface SkillNode {
-  id: string;
+  uuid: string;
   name: string;
   embedding?: number[];
 }
 
 export interface URLNode {
-  id: string;
+  uuid: string;
   name: string;
   embedding?: number[];
 }

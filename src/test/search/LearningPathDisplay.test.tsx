@@ -174,7 +174,7 @@ describe("Learning Path Display", () => {
           expect(consoleSpy).toHaveBeenCalledWith(
             "Path node clicked:",
             expect.objectContaining({
-              id: expect.any(String),
+              uuid: expect.any(String),
               type: expect.stringMatching(/skill|url/),
               name: expect.any(String),
             }),

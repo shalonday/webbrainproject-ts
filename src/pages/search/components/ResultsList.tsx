@@ -43,10 +43,10 @@ export function ResultsList({
       </Typography>
       <List>
         {results.map((node) => (
-          <ListItem key={node.id} disablePadding>
+          <ListItem key={node.uuid} disablePadding>
             <ListItemButton
-              selected={selectedResultId === node.id}
-              onClick={() => onResultSelect(node.id)}
+              selected={selectedResultId === node.uuid}
+              onClick={() => onResultSelect(node.uuid)}
               sx={{
                 borderRadius: 2,
                 mb: 0.5,

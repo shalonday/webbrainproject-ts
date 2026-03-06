@@ -12,19 +12,21 @@ import {
 import type { Link, Tree, WBNode } from "../../types/types";
 
 /** Lightweight representation of a link endpoint usable before/after D3 mutates links. */
-type Endpoint = string | { id: string };
+type Endpoint = string | { uuid: string };
 
 /** Minimal link shape for styling helpers without D3 coupling. */
-export type LinkLike = Pick<Link, "id"> & {
+export type LinkLike = Pick<Link, "uuid"> & {
   source: Endpoint;
   target: Endpoint;
 };
 
 /** Minimal node shape for styling helpers without D3 coupling. */
-export type NodeLike = Pick<WBNode, "id" | "type">;
+export type NodeLike = Pick<WBNode, "uuid" | "type">;
 
 /** Narrow an endpoint to an object with an id when D3 has expanded links. */
-export function isEndpointNode(endpoint: Endpoint): endpoint is { id: string } {
+export function isEndpointNode(
+  endpoint: Endpoint,
+): endpoint is { uuid: string } {
   return typeof endpoint !== "string";
 }
 
@@ -41,10 +43,10 @@ export function getNodeFill(
   selectedIds: string[],
   doneNodeIds: string[],
 ): string {
-  if (!node || !node.id) return INACTIVE_SKILL_FILL;
+  if (!node || !node.uuid) return INACTIVE_SKILL_FILL;
 
-  const isDone = doneNodeIds.includes(node.id);
-  const isSelected = selectedIds.includes(node.id);
+  const isDone = doneNodeIds.includes(node.uuid);
+  const isSelected = selectedIds.includes(node.uuid);
 
   if (isDone) {
     return node.type === "skill" ? DONE_SKILL_FILL : DONE_URL_FILL;
@@ -67,9 +69,9 @@ export function getNodeFill(
  * @returns True when the node exists in the path tree.
  */
 export function isNodeInPath(node: NodeLike, pathTree: Tree | null): boolean {
-  if (!node || !node.id) return false;
+  if (!node || !node.uuid) return false;
   if (!pathTree || pathTree?.nodes?.length === 0) return false;
-  return pathTree.nodes.some((n) => n.id === node.id);
+  return pathTree.nodes.some((n) => n.uuid === node.uuid);
 }
 
 /**
@@ -98,10 +100,10 @@ export function isLinkInPath(link: LinkLike, pathTree: Tree | null): boolean {
   if (!pathTree || pathTree?.links?.length === 0) return false;
 
   const sourceId = isEndpointNode(link.source)
-    ? link.source.id
+    ? link.source.uuid
     : (link.source as string);
   const targetId = isEndpointNode(link.target)
-    ? link.target.id
+    ? link.target.uuid
     : (link.target as string);
 
   return Boolean(
@@ -134,8 +136,8 @@ export function getLinkOpacity(link: LinkLike, pathTree: Tree | null): number {
  * @returns True if the link is marked as done.
  */
 export function isLinkDone(link: LinkLike, doneLinkIds: string[]): boolean {
-  if (!link || !link.id) return false;
-  return doneLinkIds.includes(link.id);
+  if (!link || !link.uuid) return false;
+  return doneLinkIds.includes(link.uuid);
 }
 
 /**
