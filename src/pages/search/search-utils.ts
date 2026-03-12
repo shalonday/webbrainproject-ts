@@ -130,3 +130,215 @@ export function isMoveForwardEnabled(
   );
   return outgoingLinks.length > 0;
 }
+
+/**
+ * Randomly shuffles an array in-place using the Fisher-Yates algorithm.
+ *
+ * @param array - The array to shuffle.
+ * @returns The same array, shuffled in-place.
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+/**
+ * Result of computing the next move-forward step in a learning path.
+ */
+export interface MoveForwardResult {
+  /** The next node to navigate to, or null if no eligible node was found. */
+  nextNode: WBNode | null;
+  /** Link IDs to newly mark as done for the chosen target node. */
+  newDoneLinkIds: string[];
+  /** Updated queue after enqueuing new targets and dequeuing the chosen node. */
+  updatedQueue: string[];
+}
+
+/**
+ * Collects outgoing target IDs when the current node is a URL.
+ * Returns shuffled skill targets for immediate practice.
+ */
+function collectUrlOutgoingTargets(
+  outgoingLinks: Link[],
+  pathTree: Tree,
+  currentDoneIds: string[],
+  alreadyQueued: Set<string>,
+): string[] {
+  const targets: string[] = [];
+  for (const link of outgoingLinks) {
+    const node = pathTree.nodes.find((n) => n.uuid === link.target);
+    if (
+      node &&
+      !nodeIsDone(currentDoneIds, node.uuid) &&
+      !alreadyQueued.has(node.uuid)
+    ) {
+      targets.push(node.uuid);
+    }
+  }
+  return shuffleArray(targets);
+}
+
+/**
+ * Collects outgoing target IDs when the current node is a skill.
+ * Groups each outgoing URL with its child skills for cohesive batching.
+ * Mutates alreadyQueued to prevent duplicate entries across the batch.
+ */
+function collectSkillOutgoingTargets(
+  outgoingLinks: Link[],
+  pathTree: Tree,
+  currentDoneIds: string[],
+  alreadyQueued: Set<string>,
+): string[] {
+  const urlTargetIds: string[] = [];
+  for (const link of outgoingLinks) {
+    const node = pathTree.nodes.find((n) => n.uuid === link.target);
+    if (
+      node &&
+      !nodeIsDone(currentDoneIds, node.uuid) &&
+      !alreadyQueued.has(node.uuid)
+    ) {
+      urlTargetIds.push(node.uuid);
+    }
+  }
+  shuffleArray(urlTargetIds);
+
+  const targets: string[] = [];
+  for (const urlId of urlTargetIds) {
+    targets.push(urlId);
+    alreadyQueued.add(urlId);
+
+    // Collect the skills taught by this URL and group them after it in the queue.
+    const childSkillIds: string[] = [];
+    for (const childLink of pathTree.links.filter((l) => l.source === urlId)) {
+      const child = pathTree.nodes.find((n) => n.uuid === childLink.target);
+      if (
+        child &&
+        !nodeIsDone(currentDoneIds, child.uuid) &&
+        !alreadyQueued.has(child.uuid)
+      ) {
+        childSkillIds.push(child.uuid);
+        alreadyQueued.add(child.uuid);
+      }
+    }
+    targets.push(...shuffleArray(childSkillIds));
+  }
+  return targets;
+}
+
+/**
+ * Finds the first node in the queue eligible to visit next.
+ * Skips done nodes and URL nodes whose skill prerequisites are incomplete.
+ */
+function findNextEligibleNode(
+  queue: string[],
+  pathTree: Tree,
+  universalTree: Tree | null,
+  currentDoneIds: string[],
+): { node: WBNode; index: number } | null {
+  for (let i = 0; i < queue.length; i++) {
+    const node = pathTree.nodes.find((n) => n.uuid === queue[i]);
+    if (!node || nodeIsDone(currentDoneIds, node.uuid)) continue;
+    if (
+      node.type === "url" &&
+      !hasAllSkillPrerequisitesDone(universalTree, node, currentDoneIds)
+    ) {
+      continue;
+    }
+    return { node, index: i };
+  }
+  return null;
+}
+
+/**
+ * Computes link IDs to mark as done when a target node is chosen.
+ * For URL nodes, marks all incoming links. For skill nodes, marks only links from done sources.
+ */
+function computeNewDoneLinkIds(
+  targetNode: WBNode,
+  pathTree: Tree,
+  currentDoneIds: string[],
+): string[] {
+  if (targetNode.type === "url") {
+    return pathTree.links
+      .filter((link) => link.target === targetNode.uuid)
+      .map((link) => link.uuid);
+  }
+  return pathTree.links
+    .filter(
+      (link) =>
+        link.target === targetNode.uuid && currentDoneIds.includes(link.source),
+    )
+    .map((link) => link.uuid);
+}
+
+/**
+ * Computes the next node to visit when moving forward in a learning path.
+ * Handles BFS queue building with type-based priority and prerequisite gating.
+ *
+ * When the current node is a URL, its outgoing skills are prepended to the queue front
+ * (immediate practice). When the current node is a skill, outgoing URLs are appended
+ * to the queue back, each grouped with their child skills.
+ * URL nodes are only eligible when all their skill prerequisites are completed.
+ *
+ * @param pathTree - The tree representing the learning path.
+ * @param universalTree - The complete graph for prerequisite checking (null skips checks).
+ * @param currentNodeId - The ID of the node being completed.
+ * @param doneNodeIds - Already-completed node IDs (excluding currentNodeId).
+ * @param nodeQueue - The current queue of pending node IDs.
+ * @returns The computed next step: target node, link IDs to mark done, and updated queue.
+ */
+export function computeMoveForward(
+  pathTree: Tree,
+  universalTree: Tree | null,
+  currentNodeId: string,
+  doneNodeIds: string[],
+  nodeQueue: string[],
+): MoveForwardResult {
+  const currentDoneIds = [...doneNodeIds, currentNodeId];
+  const currentNode = pathTree.nodes.find((n) => n.uuid === currentNodeId);
+  const isCurrentUrl = currentNode?.type === "url";
+
+  const outgoingLinks = pathTree.links.filter(
+    (link) => link.source === currentNodeId,
+  );
+  const alreadyQueued = new Set(nodeQueue);
+
+  const newTargetIds = isCurrentUrl
+    ? collectUrlOutgoingTargets(
+        outgoingLinks,
+        pathTree,
+        currentDoneIds,
+        alreadyQueued,
+      )
+    : collectSkillOutgoingTargets(
+        outgoingLinks,
+        pathTree,
+        currentDoneIds,
+        alreadyQueued,
+      );
+
+  const updatedQueue = isCurrentUrl
+    ? [...newTargetIds, ...nodeQueue]
+    : [...nodeQueue, ...newTargetIds];
+
+  const next = findNextEligibleNode(
+    updatedQueue,
+    pathTree,
+    universalTree,
+    currentDoneIds,
+  );
+  if (!next) {
+    return { nextNode: null, newDoneLinkIds: [], updatedQueue };
+  }
+
+  updatedQueue.splice(next.index, 1);
+
+  return {
+    nextNode: next.node,
+    newDoneLinkIds: computeNewDoneLinkIds(next.node, pathTree, currentDoneIds),
+    updatedQueue,
+  };
+}
