@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { SkillTreesContextProvider } from "./contexts/SkillTreesContext";
 import Search from "./pages/search/Search";
+import { SkillTestRoute } from "./pages/skill-test/SkillTestRoute";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Search />} />
             <Route path="/paths/:startId/:endId" element={<Search />} />
+            <Route path="/skill-test/:nodeId" element={<SkillTestRoute />} />
           </Routes>
         </BrowserRouter>
       </SkillTreesContextProvider>

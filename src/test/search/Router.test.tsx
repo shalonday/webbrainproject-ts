@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import { SkillTreesContextProvider } from "../../contexts/SkillTreesContext";
 import Search from "../../pages/search/Search";
+import { getSkillTestConfig } from "../../pages/skill-test/registry";
+import { SkillTestRoute } from "../../pages/skill-test/SkillTestRoute";
 import { server } from "../setup";
 
 /**
@@ -28,6 +30,7 @@ function renderSearchPageWithRouter(initialEntries: string[] = ["/"]): void {
           <Routes>
             <Route path="/" element={<Search />} />
             <Route path="/paths/:startId/:endId" element={<Search />} />
+            <Route path="/skill-test/:nodeId" element={<SkillTestRoute />} />
           </Routes>
         </MemoryRouter>
       </SkillTreesContextProvider>
@@ -128,4 +131,18 @@ describe("React Router integration", () => {
       server.events.removeAllListeners("request:start");
     }
   }, 60000);
+
+  it("renders SkillTestRoute at /skill-test/:nodeId route", () => {
+    const nodeId = "3b16c249-0a8d-484c-ba14-90c611ccd077";
+    const config = getSkillTestConfig(nodeId);
+
+    if (!config || config.mode !== "internalDynamic") {
+      throw new Error("Expected internalDynamic config for known test node");
+    }
+
+    renderSearchPageWithRouter([`/skill-test/${nodeId}`]);
+
+    expect(screen.getByRole("button", { name: /done/i })).toBeInTheDocument();
+    expect(screen.getByText(config.title)).toBeInTheDocument();
+  });
 });
