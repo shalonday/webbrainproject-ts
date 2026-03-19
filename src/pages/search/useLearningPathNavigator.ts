@@ -1,13 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { BASE_URL } from "../../common-constants";
-import type { Link, Tree, WBNode } from "../../types/types";
+import type { Tree, WBNode } from "../../types/types";
 import {
+  computeMoveForward,
   DEFAULT_START_NODE_ID,
-  findUndoneBranchTarget,
-  hasAllSkillPrerequisitesDone,
   isMoveForwardEnabled,
-  nodeIsDone,
 } from "./search-utils";
 
 interface UseLearningPathNavigatorParams {
@@ -40,7 +38,7 @@ interface UseLearningPathNavigatorResult {
  */
 function findCurrentNode(pathTree: Tree | null, currentNodeId: string | null) {
   if (!pathTree || !currentNodeId) return null;
-  return pathTree.nodes.find((node) => node.id === currentNodeId) || null;
+  return pathTree.nodes.find((node) => node.uuid === currentNodeId) || null;
 }
 
 /**
@@ -60,7 +58,8 @@ export function useLearningPathNavigator({
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [doneNodeIds, setDoneNodeIds] = useState<string[]>([]);
   const [doneLinkIds, setDoneLinkIds] = useState<string[]>([]);
-  const [visitedNodeIds, setVisitedNodeIds] = useState<string[]>([]);
+  const [, setVisitedNodeIds] = useState<string[]>([]);
+  const [nodeQueue, setNodeQueue] = useState<string[]>([]);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isSkillConfirmed, setIsSkillConfirmed] = useState(false);
 
@@ -75,12 +74,13 @@ export function useLearningPathNavigator({
     setDoneNodeIds([]);
     setDoneLinkIds([]);
     setVisitedNodeIds([]);
+    setNodeQueue([]);
   }, []);
 
   const handleLandOnNode = useCallback((node: WBNode) => {
-    if (node.type === "skill" && node.id !== DEFAULT_START_NODE_ID) {
+    if (node.type === "skill" && node.uuid !== DEFAULT_START_NODE_ID) {
       // Open the skill-test tab and show modal for confirmation
-      window.open(`/skill-test/${node.id}`, "_blank");
+      window.open(`/skill-test/${node.uuid}`, "_blank");
       setIsSkillModalOpen(true);
       setIsSkillConfirmed(false);
       return;
@@ -109,10 +109,10 @@ export function useLearningPathNavigator({
       const nextPathTree: Tree = { nodes: data.nodes, links: data.links };
       setPathTree(nextPathTree);
       setCurrentNodeId(
-        nextPathTree.nodes.length > 0 ? nextPathTree.nodes[0].id : null,
+        nextPathTree.nodes.length > 0 ? nextPathTree.nodes[0].uuid : null,
       );
       setVisitedNodeIds((prev) =>
-        nextPathTree.nodes.length > 0 ? [nextPathTree.nodes[0].id] : prev,
+        nextPathTree.nodes.length > 0 ? [nextPathTree.nodes[0].uuid] : prev,
       );
 
       if (nextPathTree.nodes.length > 0) {
@@ -132,72 +132,36 @@ export function useLearningPathNavigator({
 
     setDoneNodeIds((prev) => [...prev, currentNodeId]);
 
-    const outgoingLinks = pathTree.links.filter(
-      (link) => link.source === currentNodeId,
+    const result = computeMoveForward(
+      pathTree,
+      universalTree,
+      currentNodeId,
+      doneNodeIds,
+      nodeQueue,
     );
-    if (outgoingLinks.length === 0) return;
 
-    let targetLink: Link | null = null;
-    let targetNode: WBNode | null = null;
+    setNodeQueue(result.updatedQueue);
 
-    for (const link of outgoingLinks) {
-      const node = pathTree.nodes.find((n) => n.id === link.target);
-      if (node && !nodeIsDone(doneNodeIds, node.id)) {
-        if (
-          node.type === "url" &&
-          !hasAllSkillPrerequisitesDone(universalTree, node, doneNodeIds, [
-            currentNodeId,
-          ])
-        ) {
-          continue;
-        }
-        targetLink = link;
-        targetNode = node;
-        break;
-      }
+    if (!result.nextNode) {
+      return;
     }
 
-    if (!targetNode) {
-      const backtrackTarget = findUndoneBranchTarget(
-        pathTree,
-        visitedNodeIds,
-        doneNodeIds,
-      );
-      if (backtrackTarget) {
-        targetNode = backtrackTarget.node;
-        targetLink = backtrackTarget.link;
-      } else {
-        return;
-      }
-    }
-
-    if (targetLink) {
-      if (targetNode.type === "url") {
-        const allIncomingLinks = pathTree.links.filter(
-          (link) => link.target === targetNode?.id,
-        );
-        const incomingLinkIds = allIncomingLinks.map((link) => link.id);
-        setDoneLinkIds((prev) => [...prev, ...incomingLinkIds]);
-      } else {
-        setDoneLinkIds((prev) => [...prev, targetLink.id]);
-      }
-    }
-
-    setCurrentNodeId(targetNode.id);
-    setVisitedNodeIds((prev) => [...prev, targetNode?.id]);
-    handleLandOnNode(targetNode);
+    setDoneLinkIds((prev) => [...prev, ...result.newDoneLinkIds]);
+    setCurrentNodeId(result.nextNode.uuid);
+    setVisitedNodeIds((prev) => [...prev, result.nextNode!.uuid]);
+    handleLandOnNode(result.nextNode);
   }, [
     currentNodeId,
     doneNodeIds,
     handleLandOnNode,
+    nodeQueue,
     pathTree,
     universalTree,
-    visitedNodeIds,
   ]);
 
   const isMoveForwardEnabledCb = useCallback(
-    () => isMoveForwardEnabled(pathTree, currentNodeId),
-    [currentNodeId, pathTree],
+    () => nodeQueue.length > 0 || isMoveForwardEnabled(pathTree, currentNodeId),
+    [currentNodeId, nodeQueue, pathTree],
   );
 
   return {

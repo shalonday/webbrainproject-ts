@@ -72,7 +72,7 @@ export function useSearchPageState(): UseSearchPageStateResult {
   });
 
   const highlightedNodeIds = useMemo(
-    () => searchResults.map((node) => node.id),
+    () => searchResults.map((node) => node.uuid),
     [searchResults],
   );
 

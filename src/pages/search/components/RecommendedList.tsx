@@ -31,7 +31,7 @@ export function RecommendedList({ recommendedNodes }: RecommendedListProps) {
       </Typography>
       <List>
         {recommendedNodes.map((node) => (
-          <ListItem key={node.id} disablePadding>
+          <ListItem key={node.uuid} disablePadding>
             <ListItemButton
               sx={{
                 borderRadius: 2,
