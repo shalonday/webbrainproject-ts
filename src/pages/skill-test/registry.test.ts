@@ -4,11 +4,11 @@ import { getSkillTestConfig, isAllowedExternalUrl } from "./registry";
 
 describe("skill-test registry", () => {
   it("returns expected config for a known node ID", () => {
-    const config = getSkillTestConfig("bd9e1985-b9b3-4395-8c59-9e632f9f4ef7");
+    const config = getSkillTestConfig("cbd84b0c-35ca-407b-80eb-aaa04f327565");
 
     expect(config).not.toBeNull();
     expect(config?.mode).toBe("externalRedirect");
-    expect(config?.nodeId).toBe("bd9e1985-b9b3-4395-8c59-9e632f9f4ef7");
+    expect(config?.nodeId).toBe("cbd84b0c-35ca-407b-80eb-aaa04f327565");
   });
 
   it("returns null for unknown node ID", () => {

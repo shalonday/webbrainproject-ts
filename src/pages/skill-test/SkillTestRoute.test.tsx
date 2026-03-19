@@ -44,7 +44,7 @@ afterEach(() => {
 
 describe("SkillTestRoute", () => {
   it("renders external redirect UI and CTA for known external node ID", async () => {
-    const nodeId = "bd9e1985-b9b3-4395-8c59-9e632f9f4ef7";
+    const nodeId = "cbd84b0c-35ca-407b-80eb-aaa04f327565";
     const externalConfig = SKILL_TEST_REGISTRY[nodeId];
 
     if (!externalConfig || externalConfig.mode !== "externalRedirect") {
