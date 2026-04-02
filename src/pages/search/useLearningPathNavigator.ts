@@ -3,6 +3,10 @@ import { useCallback, useMemo, useState } from "react";
 import { BASE_URL } from "../../common-constants";
 import type { Tree, WBNode } from "../../types/types";
 import {
+  getLocalProgress,
+  saveLocalProgress,
+} from "../../utils/progressStorage";
+import {
   computeMoveForward,
   DEFAULT_START_NODE_ID,
   isMoveForwardEnabled,
@@ -17,7 +21,9 @@ interface UseLearningPathNavigatorResult {
   currentNode: WBNode | null;
   currentNodeId: string | null;
   doneLinkIds: string[];
+  doneLinkTimestamps: Record<string, string>;
   doneNodeIds: string[];
+  doneNodeTimestamps: Record<string, string>;
   handleGeneratePath: () => Promise<void>;
   handleMoveForward: () => void;
   isMoveForwardEnabled: () => boolean;
@@ -42,6 +48,30 @@ function findCurrentNode(pathTree: Tree | null, currentNodeId: string | null) {
 }
 
 /**
+ * Reads persisted progress from localStorage and returns initial state
+ * for hydrating the hook on mount. Runs once per hook instance.
+ */
+function hydrateInitialState() {
+  const progress = getLocalProgress();
+  if (!progress) {
+    return {
+      doneLinkIds: [] as string[],
+      doneLinkTimestamps: {} as Record<string, string>,
+      doneNodeIds: [] as string[],
+      doneNodeTimestamps: {} as Record<string, string>,
+      markedForStudyNodeIds: [] as string[],
+    };
+  }
+  return {
+    doneLinkIds: Object.keys(progress.doneLinkTimestamps),
+    doneLinkTimestamps: progress.doneLinkTimestamps,
+    doneNodeIds: Object.keys(progress.doneNodeTimestamps),
+    doneNodeTimestamps: progress.doneNodeTimestamps,
+    markedForStudyNodeIds: progress.markedForStudyNodeIds ?? [],
+  };
+}
+
+/**
  * Hook for managing learning path generation and navigation state.
  * Handles path fetching, node traversal, prerequisite checking, and backtracking.
  *
@@ -54,11 +84,20 @@ export function useLearningPathNavigator({
   universalTree,
   selectedResultId,
 }: UseLearningPathNavigatorParams): UseLearningPathNavigatorResult {
+  // Hydrate initial done state from localStorage (runs once on mount)
+  const [hydrated] = useState(hydrateInitialState);
+
   const [pathTree, setPathTree] = useState<Tree | null>(null);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
-  const [doneNodeIds, setDoneNodeIds] = useState<string[]>([]);
-  const [doneLinkIds, setDoneLinkIds] = useState<string[]>([]);
-  const [, setVisitedNodeIds] = useState<string[]>([]);
+  const [doneNodeIds, setDoneNodeIds] = useState<string[]>(hydrated.doneNodeIds);
+  const [doneLinkIds, setDoneLinkIds] = useState<string[]>(hydrated.doneLinkIds);
+  const [doneNodeTimestamps, setDoneNodeTimestamps] = useState<Record<string, string>>(
+    hydrated.doneNodeTimestamps,
+  );
+  const [doneLinkTimestamps, setDoneLinkTimestamps] = useState<Record<string, string>>(
+    hydrated.doneLinkTimestamps,
+  );
+  const [markedForStudyNodeIds] = useState<string[]>(hydrated.markedForStudyNodeIds);
   const [nodeQueue, setNodeQueue] = useState<string[]>([]);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isSkillConfirmed, setIsSkillConfirmed] = useState(false);
@@ -68,12 +107,16 @@ export function useLearningPathNavigator({
     [currentNodeId, pathTree],
   );
 
+  /**
+   * Clears only the active path-navigation session state.
+   *
+   * We keep persisted progress state (`done*` and study markers) intact so
+   * users can regenerate/search paths without losing completion history that
+   * was hydrated from localStorage.
+   */
   const resetPath = useCallback(() => {
     setPathTree(null);
     setCurrentNodeId(null);
-    setDoneNodeIds([]);
-    setDoneLinkIds([]);
-    setVisitedNodeIds([]);
     setNodeQueue([]);
   }, []);
 
@@ -111,9 +154,6 @@ export function useLearningPathNavigator({
       setCurrentNodeId(
         nextPathTree.nodes.length > 0 ? nextPathTree.nodes[0].uuid : null,
       );
-      setVisitedNodeIds((prev) =>
-        nextPathTree.nodes.length > 0 ? [nextPathTree.nodes[0].uuid] : prev,
-      );
 
       if (nextPathTree.nodes.length > 0) {
         handleLandOnNode(nextPathTree.nodes[0]);
@@ -130,7 +170,16 @@ export function useLearningPathNavigator({
       return;
     }
 
-    setDoneNodeIds((prev) => [...prev, currentNodeId]);
+    const now = new Date().toISOString();
+
+    // Mark current node as done with timestamp
+    const newDoneNodeIds = [...doneNodeIds, currentNodeId];
+    const newDoneNodeTimestamps = {
+      ...doneNodeTimestamps,
+      [currentNodeId]: now,
+    };
+    setDoneNodeIds(newDoneNodeIds);
+    setDoneNodeTimestamps(newDoneNodeTimestamps);
 
     const result = computeMoveForward(
       pathTree,
@@ -142,18 +191,34 @@ export function useLearningPathNavigator({
 
     setNodeQueue(result.updatedQueue);
 
-    if (!result.nextNode) {
-      return;
+    // Update done-link state when a next node exists
+    let newDoneLinkTimestamps = doneLinkTimestamps;
+    if (result.nextNode) {
+      newDoneLinkTimestamps = { ...doneLinkTimestamps };
+      for (const linkId of result.newDoneLinkIds) {
+        newDoneLinkTimestamps[linkId] = now;
+      }
+      setDoneLinkIds((prev) => [...prev, ...result.newDoneLinkIds]);
+      setDoneLinkTimestamps(newDoneLinkTimestamps);
+      setCurrentNodeId(result.nextNode.uuid);
+      handleLandOnNode(result.nextNode);
     }
 
-    setDoneLinkIds((prev) => [...prev, ...result.newDoneLinkIds]);
-    setCurrentNodeId(result.nextNode.uuid);
-    setVisitedNodeIds((prev) => [...prev, result.nextNode!.uuid]);
-    handleLandOnNode(result.nextNode);
+    // Persist updated progress to localStorage
+    saveLocalProgress({
+      schemaVersion: "1",
+      lastUpdated: now,
+      doneNodeTimestamps: newDoneNodeTimestamps,
+      doneLinkTimestamps: newDoneLinkTimestamps,
+      markedForStudyNodeIds,
+    });
   }, [
     currentNodeId,
+    doneLinkTimestamps,
     doneNodeIds,
+    doneNodeTimestamps,
     handleLandOnNode,
+    markedForStudyNodeIds,
     nodeQueue,
     pathTree,
     universalTree,
@@ -168,7 +233,9 @@ export function useLearningPathNavigator({
     currentNode,
     currentNodeId,
     doneLinkIds,
+    doneLinkTimestamps,
     doneNodeIds,
+    doneNodeTimestamps,
     handleGeneratePath,
     handleMoveForward,
     isMoveForwardEnabled: isMoveForwardEnabledCb,
