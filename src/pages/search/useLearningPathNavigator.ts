@@ -72,6 +72,87 @@ function hydrateInitialState() {
 }
 
 /**
+ * Simulates path traversal through already-done nodes to determine the
+ * appropriate landing node and queue state on path generation.
+ *
+ * When a URL node is done, immediately pull its taught skills (targets) into the queue
+ * for practice, mirroring the Move Forward "URL priority" behavior of prepending skills.
+ *
+ * @param pathTree - The generated learning path.
+ * @param doneNodeIds - Already-completed node IDs.
+ * @returns Object with frontier landing node and queue state to initialize.
+ */
+function getInitialLandingState(
+  pathTree: Tree,
+  _universalTree: Tree | null,
+  doneNodeIds: string[],
+): { currentNode: WBNode | null; queue: string[] } {
+  const startNode = pathTree.nodes.find((n) => n.uuid === DEFAULT_START_NODE_ID);
+  if (!startNode) return { currentNode: null, queue: [] };
+
+  // If start is not done, land immediately on it with no queue
+  if (!doneNodeIds.includes(startNode.uuid)) {
+    return { currentNode: startNode, queue: [] };
+  }
+
+  // BFS from start through done nodes, pulling target skills of done URLs into queue
+  const visited = new Set<string>();
+  const queue: string[] = [];
+  const bfsQueue: string[] = [startNode.uuid];
+
+  while (bfsQueue.length > 0) {
+    const currentId = bfsQueue.shift()!;
+    // doneNodeIds tracks completion state, not traversal state.
+    // visited prevents re-processing nodes during this BFS (e.g., converging edges/cycles)
+    // so queue simulation terminates deterministically.
+    if (visited.has(currentId)) continue;
+    visited.add(currentId);
+
+    const currentNode = pathTree.nodes.find((n) => n.uuid === currentId);
+    if (!currentNode) continue;
+
+    // If this node is not done, it's our frontier
+    if (!doneNodeIds.includes(currentNode.uuid)) {
+      return { currentNode, queue };
+    }
+
+    // Node is done: process outgoing links
+    const outgoingLinks = pathTree.links.filter((link) => link.source === currentId);
+
+    for (const link of outgoingLinks) {
+      const targetNode = pathTree.nodes.find((n) => n.uuid === link.target);
+      if (!targetNode || visited.has(targetNode.uuid)) continue;
+
+      if (doneNodeIds.includes(targetNode.uuid)) {
+        // Target is done: continue BFS through it
+        bfsQueue.push(targetNode.uuid);
+      } else if (currentNode.type === "url" && targetNode.type === "skill") {
+        // URL priority: prepend taught skills to front for immediate practice
+        if (!queue.includes(targetNode.uuid)) {
+          queue.unshift(targetNode.uuid);
+        }
+      } else {
+        // Default: append undone target to back of queue
+        if (!queue.includes(targetNode.uuid)) {
+          queue.push(targetNode.uuid);
+        }
+      }
+    }
+  }
+
+  // All nodes visited were done; return first undone in queue or null
+  for (const queuedId of queue) {
+    const queuedNode = pathTree.nodes.find((n) => n.uuid === queuedId);
+    if (queuedNode && !doneNodeIds.includes(queuedNode.uuid)) {
+      const remaining = queue.filter((id) => id !== queuedId);
+      return { currentNode: queuedNode, queue: remaining };
+    }
+  }
+
+  return { currentNode: null, queue };
+}
+
+/**
  * Hook for managing learning path generation and navigation state.
  * Handles path fetching, node traversal, prerequisite checking, and backtracking.
  *
@@ -151,19 +232,26 @@ export function useLearningPathNavigator({
       const data = await response.json();
       const nextPathTree: Tree = { nodes: data.nodes, links: data.links };
       setPathTree(nextPathTree);
-      setCurrentNodeId(
-        nextPathTree.nodes.length > 0 ? nextPathTree.nodes[0].uuid : null,
+
+      // Simulate traversal through done nodes to find appropriate landing node and queue
+      const { currentNode: landingNode, queue: initialQueue } = getInitialLandingState(
+        nextPathTree,
+        universalTree,
+        doneNodeIds,
       );
 
-      if (nextPathTree.nodes.length > 0) {
-        handleLandOnNode(nextPathTree.nodes[0]);
+      setCurrentNodeId(landingNode?.uuid ?? null);
+      setNodeQueue(initialQueue);
+
+      if (landingNode) {
+        handleLandOnNode(landingNode);
       }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Error generating path:", error);
       resetPath();
     }
-  }, [handleLandOnNode, resetPath, selectedResultId]);
+  }, [doneNodeIds, handleLandOnNode, resetPath, selectedResultId, universalTree]);
 
   const handleMoveForward = useCallback(() => {
     if (!pathTree || !currentNodeId) {
