@@ -29,6 +29,7 @@ interface UseLearningPathNavigatorResult {
   isMoveForwardEnabled: () => boolean;
   isSkillModalOpen: boolean;
   isSkillConfirmed: boolean;
+  markedForStudyNodeIds: string[];
   pathTree: Tree | null;
   resetPath: () => void;
   setIsSkillConfirmed: (value: boolean) => void;
@@ -329,6 +330,7 @@ export function useLearningPathNavigator({
     isMoveForwardEnabled: isMoveForwardEnabledCb,
     isSkillConfirmed,
     isSkillModalOpen,
+    markedForStudyNodeIds,
     pathTree,
     resetPath,
     setIsSkillConfirmed,

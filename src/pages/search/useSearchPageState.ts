@@ -11,6 +11,7 @@ interface UseSearchPageStateResult {
   currentNodeId: string | null;
   doneLinkIds: string[];
   doneNodeIds: string[];
+  doneNodeTimestamps: Record<string, string>;
   handleGeneratePath: () => Promise<void>;
   handleKeyDown: (event: React.KeyboardEvent) => void;
   handleMoveForward: () => void;
@@ -22,6 +23,7 @@ interface UseSearchPageStateResult {
   isSearchActive: boolean;
   isSkillConfirmed: boolean;
   isSkillModalOpen: boolean;
+  markedForStudyNodeIds: string[];
   pathTree: Tree | null;
   recommendedNodes: WBNode[];
   searchResults: WBNode[];
@@ -58,11 +60,13 @@ export function useSearchPageState(): UseSearchPageStateResult {
     currentNodeId,
     doneNodeIds,
     doneLinkIds,
+    doneNodeTimestamps,
     handleGeneratePath,
     handleMoveForward,
     isMoveForwardEnabled,
     isSkillConfirmed,
     isSkillModalOpen,
+    markedForStudyNodeIds,
     resetPath,
     setIsSkillConfirmed,
     setIsSkillModalOpen,
@@ -114,6 +118,7 @@ export function useSearchPageState(): UseSearchPageStateResult {
     currentNodeId,
     doneLinkIds,
     doneNodeIds,
+    doneNodeTimestamps,
     handleGeneratePath,
     handleKeyDown,
     handleMoveForward,
@@ -125,6 +130,7 @@ export function useSearchPageState(): UseSearchPageStateResult {
     isSearchActive,
     isSkillConfirmed,
     isSkillModalOpen,
+    markedForStudyNodeIds,
     pathTree,
     recommendedNodes,
     searchResults,

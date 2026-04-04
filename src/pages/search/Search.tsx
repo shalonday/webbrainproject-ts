@@ -43,6 +43,7 @@ function Search(): ReactNode {
     currentNodeId,
     doneLinkIds,
     doneNodeIds,
+    doneNodeTimestamps,
     handleGeneratePath,
     handleKeyDown,
     handleMoveForward,
@@ -54,6 +55,7 @@ function Search(): ReactNode {
     isSearchActive,
     isSkillConfirmed,
     isSkillModalOpen,
+    markedForStudyNodeIds,
     pathTree,
     recommendedNodes,
     searchResults,
@@ -155,7 +157,9 @@ function Search(): ReactNode {
           currentNode={currentNode}
           doneLinkIds={doneLinkIds}
           doneNodeIds={doneNodeIds}
+          doneNodeTimestamps={doneNodeTimestamps}
           highlightedNodeIds={highlightedNodeIds}
+          markedForStudyNodeIds={markedForStudyNodeIds}
           pathTree={pathTree}
           universalTree={universalTree}
         />
