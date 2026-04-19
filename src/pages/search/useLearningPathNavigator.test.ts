@@ -550,3 +550,62 @@ describe("useLearningPathNavigator – advance past done nodes", () => {
     expect(result.current.currentNodeId).toBe(DEFAULT_START_NODE_ID);
   });
 });
+
+// ---------------------------------------------------------------------------
+// refreshFromStorage
+// ---------------------------------------------------------------------------
+
+describe("useLearningPathNavigator – refreshFromStorage", () => {
+  it("updates in-memory state from localStorage after external mutation", () => {
+    const { result } = renderNavigator();
+    expect(result.current.doneNodeIds).toEqual([]);
+
+    // Simulate an external write (e.g., import flow)
+    saveLocalProgress({
+      schemaVersion: "1",
+      lastUpdated: "2026-04-01T00:00:00Z",
+      doneNodeTimestamps: { imported1: "2026-04-01T00:00:00Z" },
+      doneLinkTimestamps: { importedLink1: "2026-04-01T00:00:00Z" },
+      markedForStudyNodeIds: ["studyX"],
+    });
+
+    act(() => {
+      result.current.refreshFromStorage();
+    });
+
+    expect(result.current.doneNodeIds).toEqual(["imported1"]);
+    expect(result.current.doneLinkIds).toEqual(["importedLink1"]);
+    expect(result.current.doneNodeTimestamps).toEqual({
+      imported1: "2026-04-01T00:00:00Z",
+    });
+    expect(result.current.doneLinkTimestamps).toEqual({
+      importedLink1: "2026-04-01T00:00:00Z",
+    });
+    expect(result.current.markedForStudyNodeIds).toEqual(["studyX"]);
+  });
+
+  it("clears in-memory state when localStorage is empty", () => {
+    saveLocalProgress({
+      schemaVersion: "1",
+      lastUpdated: "2026-01-01T00:00:00Z",
+      doneNodeTimestamps: { n1: "2026-01-01T00:00:00Z" },
+      doneLinkTimestamps: { l1: "2026-01-01T00:00:00Z" },
+      markedForStudyNodeIds: ["s1"],
+    });
+
+    const { result } = renderNavigator();
+    expect(result.current.doneNodeIds).toEqual(["n1"]);
+
+    localStorage.clear();
+
+    act(() => {
+      result.current.refreshFromStorage();
+    });
+
+    expect(result.current.doneNodeIds).toEqual([]);
+    expect(result.current.doneLinkIds).toEqual([]);
+    expect(result.current.doneNodeTimestamps).toEqual({});
+    expect(result.current.doneLinkTimestamps).toEqual({});
+    expect(result.current.markedForStudyNodeIds).toEqual([]);
+  });
+});

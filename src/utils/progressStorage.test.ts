@@ -227,6 +227,37 @@ describe("localStorage round-trip", () => {
     warnSpy.mockRestore();
     localStorage.setItem = original;
   });
+
+  it("getLocalProgress returns null when localStorage.getItem throws", () => {
+    const original = localStorage.getItem;
+    /**
+     *
+     */
+    localStorage.getItem = () => {
+      throw new DOMException("access denied", "SecurityError");
+    };
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = getLocalProgress();
+    expect(result).toBeNull();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+    localStorage.getItem = original;
+  });
+
+  it("clearLocalProgress handles error when localStorage.removeItem throws", () => {
+    const original = localStorage.removeItem;
+    /**
+     *
+     */
+    localStorage.removeItem = () => {
+      throw new DOMException("access denied", "SecurityError");
+    };
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    clearLocalProgress();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+    localStorage.removeItem = original;
+  });
 });
 
 // ========================================================================
@@ -471,5 +502,37 @@ describe("importProgressFromFile — negative cases", () => {
     await importProgressFromFile(file, "Merge");
     const persisted = getLocalProgress()!;
     expect(persisted.doneNodeTimestamps.original).toBe("2026-01-01T00:00:00Z");
+  });
+
+  it("returns failure when localStorage save fails during import", async () => {
+    saveLocalProgress(
+      makePayload({
+        doneNodeTimestamps: { original: "2026-01-01T00:00:00Z" },
+      }),
+    );
+
+    const imported = makePayload({
+      doneNodeTimestamps: { imported: "2026-06-01T00:00:00Z" },
+    });
+
+    // Simulate quota error only on the next setItem (import write)
+    const original = localStorage.setItem;
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    /**
+     *
+     */
+    localStorage.setItem = () => {
+      throw new DOMException("quota exceeded", "QuotaExceededError");
+    };
+
+    const result = await importProgressFromFile(makeFile(imported), "Merge");
+
+    localStorage.setItem = original;
+    warnSpy.mockRestore();
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain(
+      "Import succeeded but failed to persist to localStorage.",
+    );
   });
 });

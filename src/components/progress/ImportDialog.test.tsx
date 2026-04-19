@@ -419,3 +419,58 @@ describe("ImportDialog — successful import", () => {
     expect(onSuccess).toHaveBeenCalledOnce();
   });
 });
+
+// ========================================================================
+// Import failure — localStorage write error
+// ========================================================================
+
+describe("ImportDialog — localStorage write failure", () => {
+  it("shows error when localStorage save fails during import", async () => {
+    saveLocalProgress(makePayload());
+    const onSuccess = vi.fn();
+
+    const user = userEvent.setup();
+    render(<ImportDialog isPathActive={false} onImportSuccess={onSuccess} />);
+    await user.click(screen.getByRole("button", { name: "Import progress" }));
+
+    const imported = makePayload({
+      doneNodeTimestamps: { n1: "2026-01-01T00:00:00Z" },
+    });
+    await user.upload(
+      screen.getByLabelText("Select progress file"),
+      new File([JSON.stringify(imported)], "p.json", {
+        type: "application/json",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Import Strategy")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByLabelText(/Study-Diff/));
+
+    // Simulate quota error on the import write
+    const original = localStorage.setItem;
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    /**
+     *
+     */
+    localStorage.setItem = () => {
+      throw new DOMException("quota exceeded", "QuotaExceededError");
+    };
+
+    await user.click(screen.getByRole("button", { name: "Import" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/failed to persist to localStorage/),
+      ).toBeInTheDocument();
+    });
+
+    localStorage.setItem = original;
+    warnSpy.mockRestore();
+
+    // onImportSuccess should NOT have been called
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+});
