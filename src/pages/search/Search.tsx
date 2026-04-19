@@ -16,6 +16,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { createPerkAPIClient } from "../../api/perkClient";
+import { ExportButton } from "../../components/progress/ExportButton";
+import { ImportDialog } from "../../components/progress/ImportDialog";
 import { RAGChatbot } from "../../components/RAGChatbot";
 import type { WBNode } from "../../types/types";
 import { ActionButtons } from "./components/ActionButtons";
@@ -57,6 +59,7 @@ function Search(): ReactNode {
     isSkillModalOpen,
     markedForStudyNodeIds,
     pathTree,
+    refreshFromStorage,
     recommendedNodes,
     searchResults,
     searchTerm,
@@ -150,6 +153,25 @@ function Search(): ReactNode {
           <ChatBubbleOutlineIcon />
         </Fab>
       </Tooltip>
+
+      {/* Progress Controls */}
+      <Box
+        sx={{
+          position: "absolute",
+          top: 92,
+          right: 24,
+          zIndex: 1100,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.5,
+        }}
+      >
+        <ExportButton />
+        <ImportDialog
+          isPathActive={Boolean(pathTree?.nodes?.length)}
+          onImportSuccess={refreshFromStorage}
+        />
+      </Box>
 
       {/* Background Chart */}
       {universalTree && (

@@ -25,6 +25,7 @@ interface UseSearchPageStateResult {
   isSkillModalOpen: boolean;
   markedForStudyNodeIds: string[];
   pathTree: Tree | null;
+  refreshFromStorage: () => void;
   recommendedNodes: WBNode[];
   searchResults: WBNode[];
   searchTerm: string;
@@ -67,6 +68,7 @@ export function useSearchPageState(): UseSearchPageStateResult {
     isSkillConfirmed,
     isSkillModalOpen,
     markedForStudyNodeIds,
+    refreshFromStorage,
     resetPath,
     setIsSkillConfirmed,
     setIsSkillModalOpen,
@@ -132,6 +134,7 @@ export function useSearchPageState(): UseSearchPageStateResult {
     isSkillModalOpen,
     markedForStudyNodeIds,
     pathTree,
+    refreshFromStorage,
     recommendedNodes,
     searchResults,
     searchTerm,

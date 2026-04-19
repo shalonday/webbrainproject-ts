@@ -31,6 +31,7 @@ interface UseLearningPathNavigatorResult {
   isSkillConfirmed: boolean;
   markedForStudyNodeIds: string[];
   pathTree: Tree | null;
+  refreshFromStorage: () => void;
   resetPath: () => void;
   setIsSkillConfirmed: (value: boolean) => void;
   setIsSkillModalOpen: (value: boolean) => void;
@@ -88,7 +89,9 @@ function getInitialLandingState(
   _universalTree: Tree | null,
   doneNodeIds: string[],
 ): { currentNode: WBNode | null; queue: string[] } {
-  const startNode = pathTree.nodes.find((n) => n.uuid === DEFAULT_START_NODE_ID);
+  const startNode = pathTree.nodes.find(
+    (n) => n.uuid === DEFAULT_START_NODE_ID,
+  );
   if (!startNode) return { currentNode: null, queue: [] };
 
   // If start is not done, land immediately on it with no queue
@@ -118,7 +121,9 @@ function getInitialLandingState(
     }
 
     // Node is done: process outgoing links
-    const outgoingLinks = pathTree.links.filter((link) => link.source === currentId);
+    const outgoingLinks = pathTree.links.filter(
+      (link) => link.source === currentId,
+    );
 
     for (const link of outgoingLinks) {
       const targetNode = pathTree.nodes.find((n) => n.uuid === link.target);
@@ -171,15 +176,21 @@ export function useLearningPathNavigator({
 
   const [pathTree, setPathTree] = useState<Tree | null>(null);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
-  const [doneNodeIds, setDoneNodeIds] = useState<string[]>(hydrated.doneNodeIds);
-  const [doneLinkIds, setDoneLinkIds] = useState<string[]>(hydrated.doneLinkIds);
-  const [doneNodeTimestamps, setDoneNodeTimestamps] = useState<Record<string, string>>(
-    hydrated.doneNodeTimestamps,
+  const [doneNodeIds, setDoneNodeIds] = useState<string[]>(
+    hydrated.doneNodeIds,
   );
-  const [doneLinkTimestamps, setDoneLinkTimestamps] = useState<Record<string, string>>(
-    hydrated.doneLinkTimestamps,
+  const [doneLinkIds, setDoneLinkIds] = useState<string[]>(
+    hydrated.doneLinkIds,
   );
-  const [markedForStudyNodeIds] = useState<string[]>(hydrated.markedForStudyNodeIds);
+  const [doneNodeTimestamps, setDoneNodeTimestamps] = useState<
+    Record<string, string>
+  >(hydrated.doneNodeTimestamps);
+  const [doneLinkTimestamps, setDoneLinkTimestamps] = useState<
+    Record<string, string>
+  >(hydrated.doneLinkTimestamps);
+  const [markedForStudyNodeIds, setMarkedForStudyNodeIds] = useState<string[]>(
+    hydrated.markedForStudyNodeIds,
+  );
   const [nodeQueue, setNodeQueue] = useState<string[]>([]);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isSkillConfirmed, setIsSkillConfirmed] = useState(false);
@@ -235,11 +246,8 @@ export function useLearningPathNavigator({
       setPathTree(nextPathTree);
 
       // Simulate traversal through done nodes to find appropriate landing node and queue
-      const { currentNode: landingNode, queue: initialQueue } = getInitialLandingState(
-        nextPathTree,
-        universalTree,
-        doneNodeIds,
-      );
+      const { currentNode: landingNode, queue: initialQueue } =
+        getInitialLandingState(nextPathTree, universalTree, doneNodeIds);
 
       setCurrentNodeId(landingNode?.uuid ?? null);
       setNodeQueue(initialQueue);
@@ -252,7 +260,13 @@ export function useLearningPathNavigator({
       console.error("Error generating path:", error);
       resetPath();
     }
-  }, [doneNodeIds, handleLandOnNode, resetPath, selectedResultId, universalTree]);
+  }, [
+    doneNodeIds,
+    handleLandOnNode,
+    resetPath,
+    selectedResultId,
+    universalTree,
+  ]);
 
   const handleMoveForward = useCallback(() => {
     if (!pathTree || !currentNodeId) {
@@ -313,6 +327,27 @@ export function useLearningPathNavigator({
     universalTree,
   ]);
 
+  /**
+   * Re-reads persisted progress from localStorage and updates all in-memory
+   * state. Call after mutations that bypass the hook (e.g., import).
+   */
+  const refreshFromStorage = useCallback(() => {
+    const progress = getLocalProgress();
+    if (progress) {
+      setDoneNodeIds(Object.keys(progress.doneNodeTimestamps));
+      setDoneLinkIds(Object.keys(progress.doneLinkTimestamps));
+      setDoneNodeTimestamps(progress.doneNodeTimestamps);
+      setDoneLinkTimestamps(progress.doneLinkTimestamps);
+      setMarkedForStudyNodeIds(progress.markedForStudyNodeIds ?? []);
+    } else {
+      setDoneNodeIds([]);
+      setDoneLinkIds([]);
+      setDoneNodeTimestamps({});
+      setDoneLinkTimestamps({});
+      setMarkedForStudyNodeIds([]);
+    }
+  }, []);
+
   const isMoveForwardEnabledCb = useCallback(
     () => nodeQueue.length > 0 || isMoveForwardEnabled(pathTree, currentNodeId),
     [currentNodeId, nodeQueue, pathTree],
@@ -332,6 +367,7 @@ export function useLearningPathNavigator({
     isSkillModalOpen,
     markedForStudyNodeIds,
     pathTree,
+    refreshFromStorage,
     resetPath,
     setIsSkillConfirmed,
     setIsSkillModalOpen,
