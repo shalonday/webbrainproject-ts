@@ -18,6 +18,14 @@
 - `D3Chart.tsx`: owns the force simulation, zoom/drag, and renders SVG markers. Styling/highlight helpers live in `graph-styles.ts` to keep D3Chart lean.
 - Highlighting rules: path nodes/links stay fully opaque; off-path are dimmed; done nodes/links use the DONE palette; selection toggles active fills.
 
+## Progress persistence
+
+- `src/utils/progressStorage.ts`: canonical persistence module. Reads/writes a versioned `ProgressPayload` to `localStorage` under key `webbrain:progress:v1`. Exposes `getLocalProgress`, `saveLocalProgress`, `clearLocalProgress`, `exportProgress`, `validateProgressPayload`, and `importProgressFromFile` (supports Merge, Replace, and Study-Diff strategies). All `localStorage` operations are wrapped in try/catch so failures never block navigation.
+- `useLearningPathNavigator.ts`: hydrates done-state from `localStorage` on mount and persists updates on every Move Forward. Exposes `refreshFromStorage()` for external callers (e.g., import) to re-sync in-memory state after `localStorage` mutations that bypass the hook.
+- UI entry points in `src/components/progress/`:
+  - `ExportButton.tsx`: floating action button that serializes current progress to JSON and triggers a file download. Always visible.
+  - `ImportDialog.tsx`: floating action button + dialog for importing a progress JSON file. Gated (disabled when a learning path is active). Validates the file, presents strategy selection when local progress exists, enforces ownership confirmation for Merge/Replace, and calls `refreshFromStorage` on success.
+
 ## Data model notes
 
 - Graph nodes: `skill` and `url`. For `url` nodes, `name` must be the literal URL string (not a label).
