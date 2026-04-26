@@ -19,12 +19,12 @@ import {
 import type { ChangeEvent, ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 
-import type { ImportStrategy } from "../../types/types";
+import type { ImportStrategy } from "../../../types/types";
 import {
   getLocalProgress,
   importProgressFromFile,
   validateProgressPayload,
-} from "../../utils/progressStorage";
+} from "../../../utils/progressStorage";
 
 interface ImportDialogProps {
   isPathActive: boolean;

@@ -1,5 +1,5 @@
-import type { ChatResponse } from "../../types/types";
-import { buildPathLink } from "../../utils/pathLinks";
+import type { ChatResponse } from "../../../types/types";
+import { buildPathLink } from "../../../utils/pathLinks";
 
 /**
  * Format assistant message with relatedMaterials as inline markdown links

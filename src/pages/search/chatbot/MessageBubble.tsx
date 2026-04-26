@@ -1,6 +1,6 @@
 import { Box, Link as MuiLink, Paper } from "@mui/material";
 
-import type { ChatMessage } from "../../types/types";
+import type { ChatMessage } from "../../../types/types";
 import { parseMarkdownLinks } from "./helpers";
 
 interface MessageBubbleProps {

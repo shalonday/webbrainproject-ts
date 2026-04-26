@@ -15,12 +15,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { createPerkAPIClient } from "../../api/perkClient";
-import { ExportButton } from "../../components/progress/ExportButton";
-import { ImportDialog } from "../../components/progress/ImportDialog";
-import { RAGChatbot } from "../../components/RAGChatbot";
 import type { WBNode } from "../../types/types";
+import { RAGChatbot } from "./chatbot/RAGChatbot";
 import { BottomSheet } from "./components/BottomSheet";
 import { SkillModal } from "./components/SkillModal";
+import { ExportButton } from "./progress/ExportButton";
+import { ImportDialog } from "./progress/ImportDialog";
 import { DEFAULT_START_NODE_ID } from "./search-utils";
 import SearchPageChart from "./SearchPageChart";
 import { useSearchPageState } from "./useSearchPageState";
