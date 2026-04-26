@@ -12,3 +12,4 @@ export const ACTIVE_LINK_COLOR = "hsl(45 100% 50%)";
 export const DONE_SKILL_FILL = "hsl(120 40% 40%)";
 export const DONE_URL_FILL = "hsl(120 50% 70%)";
 export const DONE_LINK_COLOR = "hsl(120 50% 70%)";
+export const MARKED_FOR_STUDY_FILL = "hsl(45 80% 50%)";

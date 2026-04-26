@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Link, Tree, WBNode } from "../../types/types";
-import { computeMoveForward } from "./search-utils";
+import {
+  computeMoveForward,
+  DEFAULT_START_NODE_ID,
+  findFirstUndonePathNode,
+} from "./search-utils";
 
 /**
  * Creates a test WBNode.
@@ -526,5 +530,125 @@ describe("computeMoveForward", () => {
       // url2 selected first
       expect(result.nextNode?.uuid).toBe("url2");
     });
+  });
+});
+
+describe("findFirstUndonePathNode", () => {
+  const START = DEFAULT_START_NODE_ID;
+
+  // START(skill) → url1 → skillA → url2 → skillB
+  const linearTree: Tree = {
+    nodes: [
+      makeNode(START, "skill"),
+      makeNode("url1", "url", "https://example.com/1"),
+      makeNode("skillA", "skill"),
+      makeNode("url2", "url", "https://example.com/2"),
+      makeNode("skillB", "skill"),
+    ],
+    links: [
+      makeLink("L1", START, "url1"),
+      makeLink("L2", "url1", "skillA"),
+      makeLink("L3", "skillA", "url2"),
+      makeLink("L4", "url2", "skillB"),
+    ],
+  };
+
+  it("returns the start node when nothing is done", () => {
+    const result = findFirstUndonePathNode(linearTree, linearTree, []);
+    expect(result?.uuid).toBe(START);
+  });
+
+  it("skips the start node when it is already done", () => {
+    const result = findFirstUndonePathNode(linearTree, linearTree, [START]);
+    expect(result?.uuid).toBe("url1");
+  });
+
+  it("skips multiple done nodes to reach the frontier", () => {
+    const result = findFirstUndonePathNode(linearTree, linearTree, [
+      START,
+      "url1",
+      "skillA",
+    ]);
+    expect(result?.uuid).toBe("url2");
+  });
+
+  it("returns null when all nodes are done", () => {
+    const result = findFirstUndonePathNode(linearTree, linearTree, [
+      START,
+      "url1",
+      "skillA",
+      "url2",
+      "skillB",
+    ]);
+    expect(result).toBeNull();
+  });
+
+  it("returns null for an empty path tree", () => {
+    const empty: Tree = { nodes: [], links: [] };
+    const result = findFirstUndonePathNode(empty, empty, []);
+    expect(result).toBeNull();
+  });
+
+  it("returns null when start node is missing from path tree", () => {
+    const noStartTree: Tree = {
+      nodes: [makeNode("other", "skill")],
+      links: [],
+    };
+    const result = findFirstUndonePathNode(noStartTree, noStartTree, []);
+    expect(result).toBeNull();
+  });
+
+  it("finds first undone node in a branching path", () => {
+    // START → [url1, url2], url1 → skillA, url2 → skillB
+    const branchTree: Tree = {
+      nodes: [
+        makeNode(START, "skill"),
+        makeNode("url1", "url", "https://example.com/1"),
+        makeNode("url2", "url", "https://example.com/2"),
+        makeNode("skillA", "skill"),
+        makeNode("skillB", "skill"),
+      ],
+      links: [
+        makeLink("L1", START, "url1"),
+        makeLink("L2", START, "url2"),
+        makeLink("L3", "url1", "skillA"),
+        makeLink("L4", "url2", "skillB"),
+      ],
+    };
+
+    // START done, url1 done → BFS from START checks outgoing: url1 (done → queued),
+    // url2 (undone → returned). url2 is found before url1's subtree is explored.
+    const result = findFirstUndonePathNode(branchTree, branchTree, [
+      START,
+      "url1",
+    ]);
+    expect(result?.uuid).toBe("url2");
+  });
+
+  it("skips URL whose prerequisites are not met", () => {
+    const pathNodes = [
+      makeNode(START, "skill"),
+      makeNode("urlReq", "url", "https://example.com/req"),
+      makeNode("skillA", "skill"),
+    ];
+    const pathTree: Tree = {
+      nodes: pathNodes,
+      links: [
+        makeLink("L1", START, "urlReq"),
+        makeLink("L2", "urlReq", "skillA"),
+      ],
+    };
+    // urlReq requires extSkill (not done) in universal tree
+    const universalTree: Tree = {
+      nodes: [...pathNodes, makeNode("extSkill", "skill")],
+      links: [
+        ...pathTree.links,
+        makeLink("Lp", "extSkill", "urlReq"),
+      ],
+    };
+
+    // START done; urlReq is next but its prerequisite (extSkill) is not met
+    const result = findFirstUndonePathNode(pathTree, universalTree, [START]);
+    expect(result).toBeNull();
   });
 });

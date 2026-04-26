@@ -342,3 +342,66 @@ export function computeMoveForward(
     updatedQueue,
   };
 }
+
+/**
+ * Walks the path graph from the first node, following edges through
+ * already-done nodes, and returns the first undone node that is eligible
+ * to visit.  URL nodes are only eligible when all their skill prerequisites
+ * are completed.
+ *
+ * Returns null when every node in the path is already done.
+ *
+ * @param pathTree - The tree representing the learning path.
+ * @param universalTree - The complete graph for prerequisite checking.
+ * @param doneNodeIds - Already-completed node IDs.
+ * @returns The first undone eligible node, or null.
+ */
+export function findFirstUndonePathNode(
+  pathTree: Tree,
+  universalTree: Tree | null,
+  doneNodeIds: string[],
+): WBNode | null {
+  if (pathTree.nodes.length === 0) return null;
+
+  const firstNode = pathTree.nodes.find(
+    (n) => n.uuid === DEFAULT_START_NODE_ID,
+  );
+  if (!firstNode) return null;
+
+  if (!doneNodeIds.includes(firstNode.uuid)) {
+    return firstNode;
+  }
+
+  // BFS from start through done nodes to find the undone frontier
+  const visited = new Set<string>();
+  const queue: string[] = [firstNode.uuid];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    if (visited.has(currentId)) continue;
+    visited.add(currentId);
+
+    const outgoingLinks = pathTree.links.filter(
+      (link) => link.source === currentId,
+    );
+
+    for (const link of outgoingLinks) {
+      const targetNode = pathTree.nodes.find((n) => n.uuid === link.target);
+      if (!targetNode || visited.has(targetNode.uuid)) continue;
+
+      if (!doneNodeIds.includes(targetNode.uuid)) {
+        if (
+          targetNode.type === "url" &&
+          !hasAllSkillPrerequisitesDone(universalTree, targetNode, doneNodeIds)
+        ) {
+          continue;
+        }
+        return targetNode;
+      }
+      // Target is done — continue BFS through it
+      queue.push(targetNode.uuid);
+    }
+  }
+
+  return null;
+}

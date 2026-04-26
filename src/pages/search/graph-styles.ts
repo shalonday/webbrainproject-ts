@@ -8,6 +8,7 @@ import {
   INACTIVE_LINK_COLOR,
   INACTIVE_MODULE_FILL,
   INACTIVE_SKILL_FILL,
+  MARKED_FOR_STUDY_FILL,
 } from "../../common-constants";
 import type { Link, Tree, WBNode } from "../../types/types";
 
@@ -31,33 +32,48 @@ export function isEndpointNode(
 }
 
 /**
- * Determines the fill color for a node based on its type, selection, and completion state.
+ * Determines the fill color for a node based on its type, selection, completion, and study state.
+ *
+ * Priority: done > selected > marked-for-study > inactive.
  *
  * @param node - The node to style.
  * @param selectedIds - Array of selected node IDs.
  * @param doneNodeIds - Array of completed/done node IDs.
+ * @param markedForStudyNodeIds - Array of node IDs flagged as study targets.
  * @returns The appropriate fill color.
  */
 export function getNodeFill(
   node: NodeLike,
   selectedIds: string[],
   doneNodeIds: string[],
+  markedForStudyNodeIds: string[] = [],
 ): string {
   if (!node || !node.uuid) return INACTIVE_SKILL_FILL;
 
   const isDone = doneNodeIds.includes(node.uuid);
   const isSelected = selectedIds.includes(node.uuid);
+  const isMarkedForStudy = markedForStudyNodeIds.includes(node.uuid);
 
   if (isDone) {
     return node.type === "skill" ? DONE_SKILL_FILL : DONE_URL_FILL;
   }
 
   if (node.type === "skill") {
-    return isSelected ? ACTIVE_SKILL_FILL : INACTIVE_SKILL_FILL;
+    if (isSelected) {
+      return ACTIVE_SKILL_FILL;
+    }
+
+    return isMarkedForStudy ? MARKED_FOR_STUDY_FILL : INACTIVE_SKILL_FILL;
   }
+
   if (node.type === "url") {
-    return isSelected ? ACTIVE_MODULE_FILL : INACTIVE_MODULE_FILL;
+    if (isSelected) {
+      return ACTIVE_MODULE_FILL;
+    }
+
+    return isMarkedForStudy ? MARKED_FOR_STUDY_FILL : INACTIVE_MODULE_FILL;
   }
+
   return INACTIVE_SKILL_FILL;
 }
 

@@ -50,6 +50,8 @@ interface D3ChartProps {
   currentNode?: WBNode | null;
   doneLinkIds?: string[];
   doneNodeIds?: string[];
+  doneNodeTimestamps?: Record<string, string>;
+  markedForStudyNodeIds?: string[];
   onNodeClick?: (nodeId: string) => void;
   onNodeTouchEnd?: (event: React.TouchEvent<SVGCircleElement>) => void;
   onNodeTouchStart?: (event: React.TouchEvent<SVGCircleElement>) => void;
@@ -160,16 +162,20 @@ function renderLinks(
  * @param selectedNodeIds - Array of selected node IDs for styling.
  * @param pathTree - The current learning path tree (used to dim non-path nodes).
  * @param doneNodeIds - Array of completed node IDs.
+ * @param markedForStudyNodeIds - Array of node IDs flagged as study targets.
  */
 function updateNodeColors(
   gNodeRef: React.RefObject<SVGGElement | null>,
   selectedNodeIds: string[],
   pathTree: Tree | null,
   doneNodeIds: string[],
+  markedForStudyNodeIds: string[],
 ) {
   d3.select(gNodeRef.current)
     .selectAll<SVGCircleElement, SimulatedWBNode>("circle")
-    .attr("fill", (d) => getNodeFill(d, selectedNodeIds, doneNodeIds))
+    .attr("fill", (d) =>
+      getNodeFill(d, selectedNodeIds, doneNodeIds, markedForStudyNodeIds),
+    )
     .attr("opacity", (d) => getNodeOpacity(d, pathTree));
 }
 
@@ -207,6 +213,7 @@ function updateLinkColors(
  * @param simulation - Force simulation for drag interaction.
  * @param pathTree - The current learning path tree.
  * @param doneNodeIds - Array of completed node IDs.
+ * @param markedForStudyNodeIds - Array of node IDs flagged as study targets.
  * @returns D3 selection of rendered circle elements.
  */
 function renderNodes(
@@ -219,6 +226,7 @@ function renderNodes(
   >,
   pathTree: Tree | null,
   doneNodeIds: string[],
+  markedForStudyNodeIds: string[],
 ): NodeSelection {
   return d3
     .select(gNodeRef.current)
@@ -227,7 +235,9 @@ function renderNodes(
     .attr("r", (d) =>
       d.type === "skill" || d.type === "url" ? RADIUS : MINOR_RADIUS,
     )
-    .attr("fill", (d) => getNodeFill(d, selectedNodeIds, doneNodeIds))
+    .attr("fill", (d) =>
+      getNodeFill(d, selectedNodeIds, doneNodeIds, markedForStudyNodeIds),
+    )
     .attr("opacity", (d) => getNodeOpacity(d, pathTree))
     .attr("stroke", "black")
     .call((selection) => {
@@ -321,6 +331,7 @@ function updatePositions(link: LinkSelection, node: NodeSelection) {
  * @param svgRef - Reference to the SVG element.
  * @param doneNodeIds - Array of completed node IDs.
  * @param doneLinkIds - Array of completed link IDs.
+ * @param markedForStudyNodeIds - Array of node IDs flagged as study targets.
  * @param viewBoxWidth - Width for center-force positioning, defaults to 400.
  * @param viewBoxHeight - Height for center-force positioning, defaults to 400.
  */
@@ -334,6 +345,7 @@ function ForceGraph(
   svgRef: React.RefObject<SVGSVGElement | null>,
   doneNodeIds: string[],
   doneLinkIds: string[],
+  markedForStudyNodeIds: string[],
   viewBoxWidth = 400,
   viewBoxHeight = 400,
 ) {
@@ -353,6 +365,7 @@ function ForceGraph(
     ),
     pathTree,
     doneNodeIds,
+    markedForStudyNodeIds,
   );
 
   setupZoom(svgRef, gNodeAndLinkRef);
@@ -381,6 +394,8 @@ export default function D3Chart({
   currentNode = null,
   doneNodeIds = [],
   doneLinkIds = [],
+  doneNodeTimestamps = {},
+  markedForStudyNodeIds = [],
 }: D3ChartProps) {
   const gLinkRef = useRef<SVGGElement>(null);
   const gNodeRef = useRef<SVGGElement>(null);
@@ -404,6 +419,7 @@ export default function D3Chart({
       svgRef,
       doneNodeIds,
       doneLinkIds,
+      markedForStudyNodeIds,
       viewBoxWidth,
       viewBoxHeight,
     );
@@ -414,14 +430,32 @@ export default function D3Chart({
 
   // Update node colors when selection changes without recreating simulation
   useEffect(() => {
-    updateNodeColors(gNodeRef, selectedNodeIds, pathTree, doneNodeIds);
-  }, [selectedNodeIds, pathTree, doneNodeIds]);
+    updateNodeColors(
+      gNodeRef,
+      selectedNodeIds,
+      pathTree,
+      doneNodeIds,
+      markedForStudyNodeIds,
+    );
+  }, [selectedNodeIds, pathTree, doneNodeIds, markedForStudyNodeIds]);
 
   // Update link colors when path changes without recreating simulation
   useEffect(() => {
     updateLinkColors(gLinkRef, pathTree, doneLinkIds);
-    updateNodeColors(gNodeRef, selectedNodeIds, pathTree, doneNodeIds);
-  }, [pathTree, selectedNodeIds, doneNodeIds, doneLinkIds]);
+    updateNodeColors(
+      gNodeRef,
+      selectedNodeIds,
+      pathTree,
+      doneNodeIds,
+      markedForStudyNodeIds,
+    );
+  }, [
+    pathTree,
+    selectedNodeIds,
+    doneNodeIds,
+    doneLinkIds,
+    markedForStudyNodeIds,
+  ]);
 
   return (
     <div
@@ -500,6 +534,14 @@ export default function D3Chart({
                       ? "true"
                       : undefined
                   }
+                  data-done={
+                    doneNodeIds.includes(node.uuid) ? "true" : undefined
+                  }
+                  data-study={
+                    markedForStudyNodeIds.includes(node.uuid)
+                      ? "true"
+                      : undefined
+                  }
                   key={node.uuid}
                   // Closure captures node.uuid to pass to click handler
                   onClick={() => onNodeClick(node.uuid)}
@@ -507,6 +549,11 @@ export default function D3Chart({
                   onTouchStart={onNodeTouchStart}
                   strokeWidth={1.5}
                 >
+                  {doneNodeTimestamps[node.uuid] && (
+                    <title>
+                      {`Completed on ${doneNodeTimestamps[node.uuid]}`}
+                    </title>
+                  )}
                   {currentNode && currentNode?.uuid === node.uuid && (
                     <animate
                       key={`animate-${node.uuid}`}

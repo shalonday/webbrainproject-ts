@@ -53,6 +53,15 @@ Note that a URL can have multiple prerequisite skills, and multiple objective sk
 - `vite.config.ts`: Vite configuration
 - `tsconfig.*.json`: TypeScript project references (app/node separation)
 
+## Path Traversal Rules
+
+When navigating a learning path (Move Forward), these rules govern node ordering:
+
+- **URL priority**: When a URL is completed, its taught skills (outgoing edges from the URL) are prepended to the **front** of the queue for immediate practice, before any other pending nodes.
+- **Skill batching**: When a skill is completed, outgoing URLs are appended to the **back** of the queue, each grouped with their respective taught skills.
+- **Prerequisite gating**: A URL node is only eligible to visit when all its required skill prerequisites (incoming skill edges in the universal tree) are done.
+- **Session resume**: On path generation, if prior done-state exists in localStorage, traversal simulates progress through all done nodes — applying the same URL-priority queue rules — to arrive at the correct frontier node and queue state.
+
 ## Implementation Patterns (Future)
 
 - Graph visualization: D3.js
