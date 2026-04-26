@@ -62,5 +62,6 @@ beforeAll(() => server.listen());
 afterEach(() => {
   cleanup();
   server.resetHandlers();
+  localStorage.clear();
 });
 afterAll(() => server.close());

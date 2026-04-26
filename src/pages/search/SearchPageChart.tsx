@@ -7,7 +7,9 @@ interface SearchPageChartProps {
   currentNode?: WBNode | null;
   doneLinkIds?: string[];
   doneNodeIds?: string[];
+  doneNodeTimestamps?: Record<string, string>;
   highlightedNodeIds?: string[];
+  markedForStudyNodeIds?: string[];
   pathTree?: Tree | null;
   universalTree: Tree;
 }
@@ -32,6 +34,8 @@ function SearchPageChart({
   currentNode = null,
   doneNodeIds = [],
   doneLinkIds = [],
+  doneNodeTimestamps = {},
+  markedForStudyNodeIds = [],
 }: SearchPageChartProps) {
   const [displayedTree] = useState(universalTree);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -64,6 +68,8 @@ function SearchPageChart({
         currentNode={currentNode}
         doneLinkIds={doneLinkIds}
         doneNodeIds={doneNodeIds}
+        doneNodeTimestamps={doneNodeTimestamps}
+        markedForStudyNodeIds={markedForStudyNodeIds}
         onNodeClick={handleNodeClick}
         pathTree={pathTree}
         selectedNodeIds={allSelectedNodeIds}
