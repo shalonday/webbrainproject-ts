@@ -1,4 +1,4 @@
-import type { ChatMessage } from "../../types/types";
+import type { ChatMessage } from "../../../types/types";
 
 const STORAGE_KEY = "wbp_chatbot_session";
 

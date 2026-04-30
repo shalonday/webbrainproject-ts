@@ -1,14 +1,14 @@
 import { Alert, Box, CircularProgress, Paper } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
-import type { PerkAPIClient } from "../api/perkClient";
-import { DEFAULT_START_NODE_ID } from "../constants/graph";
-import type { ChatMessage } from "../types/types";
-import { generateSessionId } from "../utils/common";
-import { ChatInputArea } from "./chatbot/ChatInputArea";
-import { formatAssistantMessage } from "./chatbot/helpers";
-import { MessageBubble } from "./chatbot/MessageBubble";
-import { loadChatSession, saveChatSession } from "./chatbot/storage";
+import type { PerkAPIClient } from "../../../api/perkClient";
+import { DEFAULT_START_NODE_ID } from "../../../constants/graph";
+import type { ChatMessage } from "../../../types/types";
+import { generateSessionId } from "../../../utils/common";
+import { ChatInputArea } from "./ChatInputArea";
+import { formatAssistantMessage } from "./helpers";
+import { MessageBubble } from "./MessageBubble";
+import { loadChatSession, saveChatSession } from "./storage";
 
 export interface RAGChatbotProps {
   apiClient: PerkAPIClient;

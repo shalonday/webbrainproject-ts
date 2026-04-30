@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { Tree, WBNode } from "../../types/types";
 import D3Chart from "./D3Chart";
+import { resolveInitialFocusNodeId } from "./search-utils";
 
 interface SearchPageChartProps {
   currentNode?: WBNode | null;
@@ -40,6 +41,13 @@ function SearchPageChart({
   const [displayedTree] = useState(universalTree);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
 
+  // Stable initial focus node derived once from progress timestamps
+  const initialFocusNodeId = useMemo(
+    () => resolveInitialFocusNodeId(doneNodeTimestamps, displayedTree),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [], // intentionally empty: computed once on mount from initial hydrated state
+  );
+
   // Prioritize path nodes over search highlights
   const pathNodeIds = pathTree?.nodes?.map((node) => node.uuid) || [];
   const allSelectedNodeIds =
@@ -69,6 +77,7 @@ function SearchPageChart({
         doneLinkIds={doneLinkIds}
         doneNodeIds={doneNodeIds}
         doneNodeTimestamps={doneNodeTimestamps}
+        initialFocusNodeId={initialFocusNodeId}
         markedForStudyNodeIds={markedForStudyNodeIds}
         onNodeClick={handleNodeClick}
         pathTree={pathTree}

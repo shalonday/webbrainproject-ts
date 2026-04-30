@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -6,8 +6,10 @@ import {
   DONE_URL_FILL,
   MARKED_FOR_STUDY_FILL,
 } from "../../common-constants";
+import { DEFAULT_START_NODE_ID } from "../../constants/graph";
 import type { Tree } from "../../types/types";
 import D3Chart from "./D3Chart";
+import { resolveInitialFocusNodeId } from "./search-utils";
 
 /* ── test fixtures ────────────────────────────────────────── */
 
@@ -185,5 +187,83 @@ describe("D3Chart hydration integration", () => {
     // Both should have tooltips
     const titles = document.querySelectorAll("circle title");
     expect(titles.length).toBe(2);
+  });
+});
+
+/* ── resolveInitialFocusNodeId tests ─────────────────────── */
+
+const TREE_WITH_START: Tree = {
+  nodes: [
+    { uuid: DEFAULT_START_NODE_ID, type: "skill", name: "E" },
+    { uuid: "s1", type: "skill", name: "Skill 1" },
+    { uuid: "u1", type: "url", name: "https://example.com" },
+  ],
+  links: [],
+};
+
+describe("resolveInitialFocusNodeId", () => {
+  it("returns latest done node when progress exists and node is in tree", () => {
+    const timestamps = {
+      s1: "2026-01-10T08:00:00Z",
+      u1: "2026-01-12T14:00:00Z", // latest
+    };
+
+    const result = resolveInitialFocusNodeId(timestamps, TREE_WITH_START);
+
+    expect(result).toBe("u1");
+  });
+
+  it("returns earlier done node when it is the latest by timestamp", () => {
+    const timestamps = {
+      u1: "2026-01-10T08:00:00Z",
+      s1: "2026-01-12T14:00:00Z", // latest
+    };
+
+    const result = resolveInitialFocusNodeId(timestamps, TREE_WITH_START);
+
+    expect(result).toBe("s1");
+  });
+
+  it("falls back to DEFAULT_START_NODE_ID when no progress exists", () => {
+    const result = resolveInitialFocusNodeId({}, TREE_WITH_START);
+
+    expect(result).toBe(DEFAULT_START_NODE_ID);
+  });
+
+  it("returns null when tree has no nodes", () => {
+    const result = resolveInitialFocusNodeId({}, { nodes: [], links: [] });
+
+    expect(result).toBeNull();
+  });
+
+  it("positions the resolved focus node near the initial viewport target", async () => {
+    const timestamps = {
+      s1: "2026-01-10T08:00:00Z",
+      u1: "2026-01-12T14:00:00Z", // latest
+    };
+
+    const resolvedFocusId = resolveInitialFocusNodeId(
+      timestamps,
+      TREE_WITH_START,
+    );
+    expect(resolvedFocusId).toBe("u1");
+
+    render(
+      <D3Chart initialFocusNodeId={resolvedFocusId} tree={TREE_WITH_START} />,
+    );
+
+    // TREE_WITH_START order: [E, s1, u1]
+    const focusedCircle = getCircles()[2];
+
+    await waitFor(() => {
+      const cx = Number(focusedCircle.getAttribute("cx"));
+      const cy = Number(focusedCircle.getAttribute("cy"));
+
+      expect(Number.isFinite(cx)).toBe(true);
+      expect(Number.isFinite(cy)).toBe(true);
+      expect(cx).toBeCloseTo(200, 0);
+      // Initial target is top-half focused (25% vertical), so it should start above center.
+      expect(cy).toBeLessThan(200);
+    });
   });
 });

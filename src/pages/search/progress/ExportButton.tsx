@@ -1,7 +1,7 @@
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Fab, Tooltip } from "@mui/material";
 
-import { exportProgress } from "../../utils/progressStorage";
+import { exportProgress } from "../../../utils/progressStorage";
 
 /**
  * Triggers a browser file download for the given JSON string.
