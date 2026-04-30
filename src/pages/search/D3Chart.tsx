@@ -21,6 +21,13 @@ import {
 // Vitest sets NODE_ENV="test" automatically; Vite sets it for dev/prod builds
 const IS_TEST_ENV = import.meta.env.MODE === "test";
 
+// Must match the viewBox attribute on the SVG element so simulation coordinates
+// map directly onto visible SVG space without any coordinate-space mismatch.
+const VIEWBOX_WIDTH = 400;
+const VIEWBOX_HEIGHT = 400;
+const CAMERA_FOLLOW_LERP = 0.18;
+const CAMERA_SETTLE_THRESHOLD = 0.5;
+
 // Type representing a WBNode augmented with D3 simulation properties
 type SimulatedWBNode = WBNode & d3.SimulationNodeDatum;
 
@@ -51,6 +58,7 @@ interface D3ChartProps {
   doneLinkIds?: string[];
   doneNodeIds?: string[];
   doneNodeTimestamps?: Record<string, string>;
+  initialFocusNodeId?: string | null;
   markedForStudyNodeIds?: string[];
   onNodeClick?: (nodeId: string) => void;
   onNodeTouchEnd?: (event: React.TouchEvent<SVGCircleElement>) => void;
@@ -73,15 +81,20 @@ type NodeSelection = d3.Selection<
   unknown
 >;
 
+interface ZoomBinding {
+  svgSelection: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown>;
+}
+
 /**
  * Attaches pan/zoom behavior to the SVG and applies transforms to the graph group.
  */
 function setupZoom(
   svgRef: React.RefObject<SVGSVGElement | null>,
   gNodeAndLinkRef: React.RefObject<SVGGElement | null>,
-) {
+): ZoomBinding | null {
   if (IS_TEST_ENV || typeof document === "undefined" || !svgRef.current) {
-    return;
+    return null;
   }
 
   const svgSelection = d3.select(svgRef.current);
@@ -94,6 +107,8 @@ function setupZoom(
 
   // Remove prior zoom handlers before applying a new one
   svgSelection.on(".zoom", null).call(zoomBehavior);
+
+  return { svgSelection, zoomBehavior };
 }
 
 /**
@@ -321,6 +336,8 @@ function updatePositions(link: LinkSelection, node: NodeSelection) {
 /**
  * Orchestrates the D3 force-directed graph setup and rendering.
  * Creates simulation, renders nodes/links, and wires update callbacks.
+ * Pre-positions the focus node at the viewport target so the initial
+ * simulation animation heads toward the correct location from frame one.
  *
  * @param data - Tree data containing nodes and links.
  * @param selectedNodeIds - Array of selected node IDs for styling.
@@ -332,8 +349,7 @@ function updatePositions(link: LinkSelection, node: NodeSelection) {
  * @param doneNodeIds - Array of completed node IDs.
  * @param doneLinkIds - Array of completed link IDs.
  * @param markedForStudyNodeIds - Array of node IDs flagged as study targets.
- * @param viewBoxWidth - Width for center-force positioning, defaults to 400.
- * @param viewBoxHeight - Height for center-force positioning, defaults to 400.
+ * @param initialFocusNodeId - UUID of node to pre-position at the viewport target.
  */
 function ForceGraph(
   data: Tree,
@@ -346,29 +362,94 @@ function ForceGraph(
   doneNodeIds: string[],
   doneLinkIds: string[],
   markedForStudyNodeIds: string[],
-  viewBoxWidth = 400,
-  viewBoxHeight = 400,
+  initialFocusNodeId: string | null = null,
 ) {
   // The force simulation mutates links and nodes, so create a copy
   // so that re-evaluating this cell produces the same result.
   const links = data.links?.map((d) => ({ ...d })) || [];
   const nodes = data.nodes?.map((d) => ({ ...d })) || ([] as SimulatedWBNode[]);
 
+  // Seed the focus node at the intended viewport target (x-center, top quarter)
+  // so the simulation animates from there rather than from a random start position.
+  if (initialFocusNodeId) {
+    // Cast is safe: D3 simulation will add x/y to these node objects in-place
+    const focusNode = nodes.find((n) => n.uuid === initialFocusNodeId) as
+      | SimulatedWBNode
+      | undefined;
+    if (focusNode) {
+      focusNode.x = VIEWBOX_WIDTH / 2;
+      focusNode.y = VIEWBOX_HEIGHT * 0.25;
+    }
+  }
+
   const linkSelection = renderLinks(gLinkRef, links, pathTree, doneLinkIds);
+
+  const zoomBinding = setupZoom(svgRef, gNodeAndLinkRef);
+
+  const simulation = createSimulation(
+    nodes,
+    links,
+    VIEWBOX_WIDTH,
+    VIEWBOX_HEIGHT,
+    () => updatePositions(linkSelection, nodeSelection),
+  );
 
   const nodeSelection = renderNodes(
     gNodeRef,
     nodes,
     selectedNodeIds,
-    createSimulation(nodes, links, viewBoxWidth, viewBoxHeight, () =>
-      updatePositions(linkSelection, nodeSelection),
-    ),
+    simulation,
     pathTree,
     doneNodeIds,
     markedForStudyNodeIds,
   );
 
-  setupZoom(svgRef, gNodeAndLinkRef);
+  // Smoothly keep the focus node near the target viewport point while the layout
+  // settles to avoid a visible end-of-simulation teleport.
+  if (initialFocusNodeId && zoomBinding && !IS_TEST_ENV) {
+    simulation.on("tick.center-focus", () => {
+      const focusNode = nodes.find((n) => n.uuid === initialFocusNodeId) as
+        | SimulatedWBNode
+        | undefined;
+      if (
+        !focusNode ||
+        typeof focusNode.x !== "number" ||
+        typeof focusNode.y !== "number"
+      ) {
+        return;
+      }
+
+      const targetX = VIEWBOX_WIDTH / 2;
+      const targetY = VIEWBOX_HEIGHT * 0.25;
+      const desiredTx = targetX - focusNode.x;
+      const desiredTy = targetY - focusNode.y;
+
+      const currentTransform = d3.zoomTransform(
+        zoomBinding.svgSelection.node()!,
+      );
+      const nextTx =
+        currentTransform.x +
+        (desiredTx - currentTransform.x) * CAMERA_FOLLOW_LERP;
+      const nextTy =
+        currentTransform.y +
+        (desiredTy - currentTransform.y) * CAMERA_FOLLOW_LERP;
+
+      const transform = d3.zoomIdentity
+        .translate(nextTx, nextTy)
+        .scale(currentTransform.k);
+
+      zoomBinding.svgSelection.call(
+        zoomBinding.zoomBehavior.transform,
+        transform,
+      );
+
+      const dx = Math.abs(desiredTx - nextTx);
+      const dy = Math.abs(desiredTy - nextTy);
+      if (dx < CAMERA_SETTLE_THRESHOLD && dy < CAMERA_SETTLE_THRESHOLD) {
+        simulation.on("tick.center-focus", null);
+      }
+    });
+  }
 }
 
 /**
@@ -395,20 +476,19 @@ export default function D3Chart({
   doneNodeIds = [],
   doneLinkIds = [],
   doneNodeTimestamps = {},
+  initialFocusNodeId = null,
   markedForStudyNodeIds = [],
 }: D3ChartProps) {
   const gLinkRef = useRef<SVGGElement>(null);
   const gNodeRef = useRef<SVGGElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const gNodeAndLinkRef = useRef<SVGGElement>(null);
-  const svgContainerRef = useRef<HTMLDivElement>(null);
   const isPathActive = Boolean(pathTree && pathTree.nodes?.length);
 
-  // Create simulation only when tree data changes
+  // Create simulation only when tree data changes.
+  // initialFocusNodeId seeds the focus node position before the first tick
+  // so the simulation animates toward the correct location from the start.
   useEffect(() => {
-    const viewBoxWidth = svgContainerRef.current?.clientWidth;
-    const viewBoxHeight = svgContainerRef.current?.clientHeight;
-
     ForceGraph(
       tree,
       selectedNodeIds,
@@ -420,13 +500,12 @@ export default function D3Chart({
       doneNodeIds,
       doneLinkIds,
       markedForStudyNodeIds,
-      viewBoxWidth,
-      viewBoxHeight,
+      initialFocusNodeId,
     );
     // selectedNodeIds, pathTree, doneNodeIds, doneLinkIds intentionally excluded: updates handled by separate effects
     // Refs are stable and don't need to be dependencies
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree]);
+  }, [tree, initialFocusNodeId]);
 
   // Update node colors when selection changes without recreating simulation
   useEffect(() => {
@@ -459,7 +538,6 @@ export default function D3Chart({
 
   return (
     <div
-      ref={svgContainerRef}
       style={{
         height: "85vh",
         width: "100vw",

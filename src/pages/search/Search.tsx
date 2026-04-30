@@ -2,7 +2,6 @@ import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
-  Card,
   CircularProgress,
   Dialog,
   DialogContent,
@@ -16,16 +15,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { createPerkAPIClient } from "../../api/perkClient";
-import { ExportButton } from "../../components/progress/ExportButton";
-import { ImportDialog } from "../../components/progress/ImportDialog";
-import { RAGChatbot } from "../../components/RAGChatbot";
 import type { WBNode } from "../../types/types";
-import { ActionButtons } from "./components/ActionButtons";
-import { PathList } from "./components/PathList";
-import { RecommendedList } from "./components/RecommendedList";
-import { ResultsList } from "./components/ResultsList";
-import { SearchInput } from "./components/SearchInput";
+import { RAGChatbot } from "./chatbot/RAGChatbot";
+import { BottomSheet } from "./components/BottomSheet";
 import { SkillModal } from "./components/SkillModal";
+import { ExportButton } from "./progress/ExportButton";
+import { ImportDialog } from "./progress/ImportDialog";
 import { DEFAULT_START_NODE_ID } from "./search-utils";
 import SearchPageChart from "./SearchPageChart";
 import { useSearchPageState } from "./useSearchPageState";
@@ -187,83 +182,30 @@ function Search(): ReactNode {
         />
       )}
 
-      {/* Foreground Waze-style Bottom Card */}
-      <Card
-        sx={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          maxHeight: "60vh",
-          minHeight: "40vh",
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          borderBottomLeftRadius: 0,
-          borderBottomRightRadius: 0,
-          boxShadow: "0 -4px 20px rgba(0, 0, 0, 0.1)",
-          display: "flex",
-          flexDirection: "column",
-          zIndex: 1000,
-          overflow: "hidden",
-        }}
-      >
-        {/* Drag Handle (optional visual indicator) */}
-        <Box
-          sx={{
-            width: 40,
-            height: 4,
-            backgroundColor: "grey.300",
-            borderRadius: 2,
-            alignSelf: "center",
-            mt: 1,
-            mb: 2,
-          }}
-        />
-
-        <SearchInput
-          value={searchTerm}
-          onSearchChange={handleSearchChange}
-          onKeyDown={handleKeyDown}
-        />
-
-        {/* Results or Recommended Section */}
-        <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
-          {pathTree ? (
-            <PathList
-              pathNodes={pathTree.nodes}
-              currentNodeId={currentNodeId}
-              doneNodeIds={doneNodeIds}
-              onPathNodeClick={handlePathNodeClick}
-            />
-          ) : isSearchActive ? (
-            <ResultsList
-              results={searchResults}
-              selectedResultId={selectedResultId}
-              onResultSelect={handleResultSelect}
-              searchTerm={searchTerm}
-            />
-          ) : (
-            <RecommendedList recommendedNodes={recommendedNodes} />
-          )}
-        </Box>
-
-        {/* Action Buttons */}
-        <ActionButtons
-          isSearchActive={isSearchActive}
-          hasSearchResults={searchResults.length > 0}
-          hasPath={Boolean(pathTree && pathTree.nodes.length > 0)}
-          selectedResultId={selectedResultId}
-          isMoveForwardEnabled={
-            currentNode?.type === "skill" &&
-            currentNode.uuid !== DEFAULT_START_NODE_ID &&
-            !isSkillConfirmed
-              ? false
-              : isMoveForwardEnabled()
-          }
-          onGeneratePath={handleGeneratePath}
-          onMoveForward={handleMoveForward}
-        />
-      </Card>
+      {/* Foreground Waze-style Bottom Sheet */}
+      <BottomSheet
+        currentNodeId={currentNodeId}
+        doneNodeIds={doneNodeIds}
+        isMoveForwardEnabled={
+          currentNode?.type === "skill" &&
+          currentNode.uuid !== DEFAULT_START_NODE_ID &&
+          !isSkillConfirmed
+            ? false
+            : isMoveForwardEnabled()
+        }
+        isSearchActive={isSearchActive}
+        onGeneratePath={handleGeneratePath}
+        onKeyDown={handleKeyDown}
+        onMoveForward={handleMoveForward}
+        onPathNodeClick={handlePathNodeClick}
+        onResultSelect={handleResultSelect}
+        onSearchChange={handleSearchChange}
+        pathTree={pathTree}
+        recommendedNodes={recommendedNodes}
+        searchResults={searchResults}
+        searchTerm={searchTerm}
+        selectedResultId={selectedResultId}
+      />
 
       <Dialog
         open={isChatbotOpen}

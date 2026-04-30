@@ -405,3 +405,33 @@ export function findFirstUndonePathNode(
 
   return null;
 }
+
+/**
+ * Returns the node UUID to center on initial graph load.
+ * Uses the latest completed node from timestamps, falling back to the default start node.
+ *
+ * @param doneNodeTimestamps - Map of node UUIDs to completion ISO timestamps.
+ * @param tree - The graph tree whose nodes are currently rendered.
+ * @returns The UUID of the node to focus, or null if tree is empty.
+ */
+export function resolveInitialFocusNodeId(
+  doneNodeTimestamps: Record<string, string>,
+  tree: Tree,
+): string | null {
+  if (!tree.nodes?.length) return null;
+  const nodeIds = new Set(tree.nodes.map((n) => n.uuid));
+
+  const entries = Object.entries(doneNodeTimestamps);
+  if (entries.length > 0) {
+    const latestEntry = entries.reduce((a, b) => (a[1] > b[1] ? a : b));
+    const latestId = latestEntry[0];
+    if (nodeIds.has(latestId)) return latestId;
+  }
+
+  // Fallback: default start node if present in the tree, else first node
+  if (nodeIds.has(DEFAULT_START_NODE_ID)) {
+    return DEFAULT_START_NODE_ID;
+  }
+  
+  return tree.nodes[0].uuid;
+}

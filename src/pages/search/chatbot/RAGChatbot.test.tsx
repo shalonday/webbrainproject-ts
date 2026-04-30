@@ -2,9 +2,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PerkAPIClient } from "../api/perkClient";
-import { BASE_URL } from "../common-constants";
-import { DEFAULT_START_NODE_ID } from "../constants/graph";
+import { PerkAPIClient } from "../../../api/perkClient";
+import { BASE_URL } from "../../../common-constants";
+import { DEFAULT_START_NODE_ID } from "../../../constants/graph";
 import { RAGChatbot } from "./RAGChatbot";
 
 // Constants for test data
