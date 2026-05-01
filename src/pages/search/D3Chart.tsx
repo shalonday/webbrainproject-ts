@@ -53,6 +53,14 @@ function isSimulatedNode(endpoint: LinkEndpoint): endpoint is SimulatedWBNode {
   return typeof endpoint !== "string";
 }
 
+/**
+ * Formats a node type for human-readable tooltip text.
+ */
+function formatNodeTypeLabel(type: WBNode["type"]): string {
+  if (type === "url") return "URL";
+  return `${type.charAt(0).toUpperCase()}${type.slice(1)}`;
+}
+
 interface D3ChartProps {
   currentNode?: WBNode | null;
   doneLinkIds?: string[];
@@ -669,52 +677,55 @@ export default function D3Chart({
           <g ref={gNodeRef}>
             {tree.nodes
               ?.filter((node) => node?.uuid)
-              .map((node) => (
-                <circle
-                  className={
-                    selectedNodeIds.includes(node.uuid) ? "selected" : ""
-                  }
-                  data-current={
-                    currentNode && currentNode.uuid === node.uuid
-                      ? "true"
-                      : undefined
-                  }
-                  data-done={
-                    doneNodeIds.includes(node.uuid) ? "true" : undefined
-                  }
-                  data-study={
-                    markedForStudyNodeIds.includes(node.uuid)
-                      ? "true"
-                      : undefined
-                  }
-                  key={node.uuid}
-                  // Closure captures node.uuid to pass to click handler
-                  onClick={() => onNodeClick(node.uuid)}
-                  onTouchEnd={onNodeTouchEnd}
-                  onTouchStart={onNodeTouchStart}
-                  strokeWidth={1.5}
-                >
-                  {doneNodeTimestamps[node.uuid] && (
-                    <title>
-                      {`Completed on ${doneNodeTimestamps[node.uuid]}`}
-                    </title>
-                  )}
-                  {currentNode && currentNode?.uuid === node.uuid && (
-                    <animate
-                      key={`animate-${node.uuid}`}
-                      attributeName="r"
-                      begin="0s"
-                      dur="1.5s"
-                      repeatCount="indefinite"
-                      values={
-                        currentNode?.type === "skill"
-                          ? `${MINOR_RADIUS};${MINOR_RADIUS * 2};${MINOR_RADIUS}`
-                          : `${MINOR_RADIUS};${MINOR_RADIUS * 2};${MINOR_RADIUS}`
-                      }
-                    />
-                  )}
-                </circle>
-              ))}
+              .map((node) => {
+                const doneTimestamp = doneNodeTimestamps[node.uuid];
+                const nodeTitle = doneTimestamp
+                  ? `${formatNodeTypeLabel(node.type)}: ${node.name}\nCompleted on ${doneTimestamp}`
+                  : `${formatNodeTypeLabel(node.type)}: ${node.name}`;
+
+                return (
+                  <circle
+                    className={
+                      selectedNodeIds.includes(node.uuid) ? "selected" : ""
+                    }
+                    data-current={
+                      currentNode && currentNode.uuid === node.uuid
+                        ? "true"
+                        : undefined
+                    }
+                    data-done={
+                      doneNodeIds.includes(node.uuid) ? "true" : undefined
+                    }
+                    data-study={
+                      markedForStudyNodeIds.includes(node.uuid)
+                        ? "true"
+                        : undefined
+                    }
+                    key={node.uuid}
+                    // Closure captures node.uuid to pass to click handler
+                    onClick={() => onNodeClick(node.uuid)}
+                    onTouchEnd={onNodeTouchEnd}
+                    onTouchStart={onNodeTouchStart}
+                    strokeWidth={1.5}
+                  >
+                    <title>{nodeTitle}</title>
+                    {currentNode && currentNode?.uuid === node.uuid && (
+                      <animate
+                        key={`animate-${node.uuid}`}
+                        attributeName="r"
+                        begin="0s"
+                        dur="1.5s"
+                        repeatCount="indefinite"
+                        values={
+                          currentNode?.type === "skill"
+                            ? `${MINOR_RADIUS};${MINOR_RADIUS * 2};${MINOR_RADIUS}`
+                            : `${MINOR_RADIUS};${MINOR_RADIUS * 2};${MINOR_RADIUS}`
+                        }
+                      />
+                    )}
+                  </circle>
+                );
+              })}
           </g>
         </g>
       </svg>
