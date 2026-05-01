@@ -163,7 +163,7 @@ function renderLinks(
     .data(links)
     .attr("stroke", (d) => getLinkColor(d, pathTree, doneLinkIds))
     .attr("opacity", (d) => getLinkOpacity(d, pathTree))
-    .attr("stroke-width", (d) => (isLinkInPath(d, pathTree) ? 3 : 1.5))
+    .attr("stroke-width", 1)
     .attr("marker-end", (d) => {
       if (isLinkDone(d, doneLinkIds)) return "url(#arrow-done)";
       return isLinkInPath(d, pathTree) ? "url(#arrow-active)" : "url(#arrow)";
@@ -211,7 +211,7 @@ function updateLinkColors(
     .selectAll<SVGLineElement, LinkDatum>("line")
     .attr("stroke", (d) => getLinkColor(d, pathTree, doneLinkIds))
     .attr("opacity", (d) => getLinkOpacity(d, pathTree))
-    .attr("stroke-width", (d) => (isLinkInPath(d, pathTree) ? 3 : 1.5))
+    .attr("stroke-width", 1)
     .attr("marker-end", (d) => {
       if (isLinkDone(d, doneLinkIds)) return "url(#arrow-done)";
       return isLinkInPath(d, pathTree) ? "url(#arrow-active)" : "url(#arrow)";
@@ -254,7 +254,6 @@ function renderNodes(
       getNodeFill(d, selectedNodeIds, doneNodeIds, markedForStudyNodeIds),
     )
     .attr("opacity", (d) => getNodeOpacity(d, pathTree))
-    .attr("stroke", "black")
     .call((selection) => {
       // Skip drag hookup in test environments or when DOM is unavailable
       if (IS_TEST_ENV || typeof document === "undefined" || !gNodeRef.current) {
@@ -325,10 +324,82 @@ function createDrag(
  */
 function updatePositions(link: LinkSelection, node: NodeSelection) {
   link
-    .attr("x1", (d) => (isSimulatedNode(d.source) ? (d.source.x ?? 0) : 0))
-    .attr("y1", (d) => (isSimulatedNode(d.source) ? (d.source.y ?? 0) : 0))
-    .attr("x2", (d) => (isSimulatedNode(d.target) ? (d.target.x ?? 0) : 0))
-    .attr("y2", (d) => (isSimulatedNode(d.target) ? (d.target.y ?? 0) : 0));
+    .attr("x1", (d) => {
+      if (!isSimulatedNode(d.source) || !isSimulatedNode(d.target)) {
+        return 0;
+      }
+
+      const sourceX = d.source.x ?? 0;
+      const sourceY = d.source.y ?? 0;
+      const targetX = d.target.x ?? 0;
+      const targetY = d.target.y ?? 0;
+      const dx = targetX - sourceX;
+      const dy = targetY - sourceY;
+      const distance = Math.hypot(dx, dy) || 1;
+      const sourceRadius =
+        d.source.type === "skill" || d.source.type === "url"
+          ? RADIUS
+          : MINOR_RADIUS;
+
+      return sourceX + (dx / distance) * (sourceRadius + 1);
+    })
+    .attr("y1", (d) => {
+      if (!isSimulatedNode(d.source) || !isSimulatedNode(d.target)) {
+        return 0;
+      }
+
+      const sourceX = d.source.x ?? 0;
+      const sourceY = d.source.y ?? 0;
+      const targetX = d.target.x ?? 0;
+      const targetY = d.target.y ?? 0;
+      const dx = targetX - sourceX;
+      const dy = targetY - sourceY;
+      const distance = Math.hypot(dx, dy) || 1;
+      const sourceRadius =
+        d.source.type === "skill" || d.source.type === "url"
+          ? RADIUS
+          : MINOR_RADIUS;
+
+      return sourceY + (dy / distance) * (sourceRadius + 1);
+    })
+    .attr("x2", (d) => {
+      if (!isSimulatedNode(d.source) || !isSimulatedNode(d.target)) {
+        return 0;
+      }
+
+      const sourceX = d.source.x ?? 0;
+      const sourceY = d.source.y ?? 0;
+      const targetX = d.target.x ?? 0;
+      const targetY = d.target.y ?? 0;
+      const dx = targetX - sourceX;
+      const dy = targetY - sourceY;
+      const distance = Math.hypot(dx, dy) || 1;
+      const targetRadius =
+        d.target.type === "skill" || d.target.type === "url"
+          ? RADIUS
+          : MINOR_RADIUS;
+
+      return targetX - (dx / distance) * (targetRadius + 2);
+    })
+    .attr("y2", (d) => {
+      if (!isSimulatedNode(d.source) || !isSimulatedNode(d.target)) {
+        return 0;
+      }
+
+      const sourceX = d.source.x ?? 0;
+      const sourceY = d.source.y ?? 0;
+      const targetX = d.target.x ?? 0;
+      const targetY = d.target.y ?? 0;
+      const dx = targetX - sourceX;
+      const dy = targetY - sourceY;
+      const distance = Math.hypot(dx, dy) || 1;
+      const targetRadius =
+        d.target.type === "skill" || d.target.type === "url"
+          ? RADIUS
+          : MINOR_RADIUS;
+
+      return targetY - (dy / distance) * (targetRadius + 2);
+    });
 
   node.attr("cx", (d) => d.x ?? 0).attr("cy", (d) => d.y ?? 0);
 }
@@ -552,39 +623,39 @@ export default function D3Chart({
         <defs>
           <marker
             id="arrow"
-            markerHeight="10"
-            markerUnits="strokeWidth"
-            markerWidth="8"
+            markerHeight="4"
+            markerUnits="userSpaceOnUse"
+            markerWidth="4"
             orient="auto"
-            refX="10"
-            refY="5"
-            viewBox="0 0 10 10"
+            refX="3.5"
+            refY="2"
+            viewBox="0 0 4 4"
           >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={INACTIVE_LINK_COLOR} />
+            <path d="M 0 0 L 4 2 L 0 4 z" fill={INACTIVE_LINK_COLOR} />
           </marker>
           <marker
             id="arrow-active"
-            markerHeight="10"
-            markerUnits="strokeWidth"
-            markerWidth="8"
+            markerHeight="4"
+            markerUnits="userSpaceOnUse"
+            markerWidth="4"
             orient="auto"
-            refX="10"
-            refY="5"
-            viewBox="0 0 10 10"
+            refX="3.5"
+            refY="2"
+            viewBox="0 0 4 4"
           >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={ACTIVE_LINK_COLOR} />
+            <path d="M 0 0 L 4 2 L 0 4 z" fill={ACTIVE_LINK_COLOR} />
           </marker>
           <marker
             id="arrow-done"
-            markerHeight="10"
-            markerUnits="strokeWidth"
-            markerWidth="8"
+            markerHeight="4"
+            markerUnits="userSpaceOnUse"
+            markerWidth="4"
             orient="auto"
-            refX="10"
-            refY="5"
-            viewBox="0 0 10 10"
+            refX="3.5"
+            refY="2"
+            viewBox="0 0 4 4"
           >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={DONE_LINK_COLOR} />
+            <path d="M 0 0 L 4 2 L 0 4 z" fill={DONE_LINK_COLOR} />
           </marker>
         </defs>
         <g ref={gNodeAndLinkRef}>
@@ -592,11 +663,7 @@ export default function D3Chart({
             {tree.links
               ?.filter((link) => link?.uuid)
               .map((link) => (
-                <line
-                  key={link.uuid}
-                  markerEnd="url(#arrow)"
-                  strokeWidth={1.5}
-                />
+                <line key={link.uuid} markerEnd="url(#arrow)" strokeWidth={1} />
               ))}
           </g>
           <g ref={gNodeRef}>
