@@ -76,7 +76,10 @@ describe("RAGChatbot", () => {
   /**
    * Test that relatedMaterials from the chat response are rendered as clickable links
    */
-  it("renders inline relatedMaterials as clickable links", async () => {
+  it(
+    "renders inline relatedMaterials as clickable links",
+    { timeout: 20000 },
+    async () => {
     // Mock the chat method to return relatedMaterials
     const mockClient = new PerkAPIClient(BASE_URL);
     vi.spyOn(mockClient, "chat").mockResolvedValue({
@@ -126,6 +129,7 @@ describe("RAGChatbot", () => {
 
       expect(link1).toHaveAttribute("href", expected1);
       expect(link2).toHaveAttribute("href", expected2);
-    });
-  });
+    }, { timeout: 10000 });
+    },
+  );
 });

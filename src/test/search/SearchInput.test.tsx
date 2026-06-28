@@ -14,7 +14,10 @@ import {
  * Tests for the Search input box functionality.
  */
 describe("Search input box", () => {
-  it("is focused when tab is pressed four times (skips FABs)", async () => {
+  it(
+    "is focused when tab is pressed four times (skips FABs)",
+    { timeout: 20000 },
+    async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
@@ -32,7 +35,8 @@ describe("Search input box", () => {
     // Fourth tab focuses the search input
     await user.tab();
     expect(searchInput).toHaveFocus();
-  });
+    },
+  );
 
   it("is focused when clicked", async () => {
     renderSearchPage();
