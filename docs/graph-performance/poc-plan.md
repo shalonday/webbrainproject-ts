@@ -107,15 +107,19 @@ Tasks:
    2. Edge count target.
    3. Density assumptions.
 
+Additional parity requirements added (camera follow & touch):
+
+1. Camera follow: PoC renderers must implement `initialFocusNodeId` seeding and camera-follow LERP behavior matching the D3 baseline (see parity-spec.md for exact constants: `CAMERA_FOLLOW_LERP = 0.18`, `CAMERA_SETTLE_THRESHOLD = 0.5`).
+2. Touch interactions: PoC renderers must support single-finger tap (node selection), two-finger pan, and pinch-to-zoom mapped to the same zoom scale (0.5–4). The renderer should forward `onNodeTouchStart` and `onNodeTouchEnd` callbacks.
+
 Deliverables:
 
 1. docs/graph-performance/parity-spec.md
-2. docs/graph-performance/stress-dataset-spec.md
 
 Exit criteria:
 
 1. Parity spec approved and unambiguous.
-2. Stress dataset profile fixed for all renderer runs.
+2. Stress dataset source and profile fixed for all renderer runs (Neo4j snapshot or equivalent).
 
 ---
 
