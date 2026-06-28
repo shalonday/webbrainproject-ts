@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { Tree, WBNode } from "../../types/types";
 import D3Chart from "./D3Chart";
+import { activeGraphRenderer } from "./graph-renderer-config";
 import { resolveInitialFocusNodeId } from "./search-utils";
 
 interface SearchPageChartProps {
@@ -70,9 +71,19 @@ function SearchPageChart({
     });
   };
 
+  // Phase 0 seam: D3 remains default until PoC recommendation is complete.
+  const ActiveChart = D3Chart;
+
+  if (activeGraphRenderer !== "d3") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Renderer '${activeGraphRenderer}' is not implemented yet; falling back to D3.`,
+    );
+  }
+
   return (
     <>
-      <D3Chart
+      <ActiveChart
         currentNode={currentNode}
         doneLinkIds={doneLinkIds}
         doneNodeIds={doneNodeIds}
