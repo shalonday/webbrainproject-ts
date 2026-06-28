@@ -91,17 +91,22 @@ describe("D3Chart timestamp tooltips", () => {
 
     const title = document.querySelector("circle title");
     expect(title).not.toBeNull();
-    expect(title?.textContent).toBe("Completed on 2026-01-15T10:30:00Z");
+    expect(title?.textContent).toBe(
+      "Skill: Skill 1\nCompleted on 2026-01-15T10:30:00Z",
+    );
   });
 
-  it("renders no title element when node has no timestamp", () => {
+  it("renders base node titles when nodes have no timestamps", () => {
     render(<D3Chart doneNodeIds={[]} tree={TREE} />);
 
     const titles = document.querySelectorAll("circle title");
-    expect(titles.length).toBe(0);
+    expect(titles.length).toBe(3);
+    expect(titles[0].textContent).toBe("Skill: Skill 1");
+    expect(titles[1].textContent).toBe("URL: https://example.com");
+    expect(titles[2].textContent).toBe("Skill: Skill 2");
   });
 
-  it("renders completion timestamps for all done nodes", () => {
+  it("renders completion timestamps for done nodes and base title otherwise", () => {
     render(
       <D3Chart
         doneNodeIds={["s1", "u1"]}
@@ -114,9 +119,14 @@ describe("D3Chart timestamp tooltips", () => {
     );
 
     const titles = document.querySelectorAll("circle title");
-    expect(titles.length).toBe(2);
-    expect(titles[0].textContent).toBe("Completed on 2026-01-15T10:30:00Z");
-    expect(titles[1].textContent).toBe("Completed on 2026-01-16T11:45:00Z");
+    expect(titles.length).toBe(3);
+    expect(titles[0].textContent).toBe(
+      "Skill: Skill 1\nCompleted on 2026-01-15T10:30:00Z",
+    );
+    expect(titles[1].textContent).toBe(
+      "URL: https://example.com\nCompleted on 2026-01-16T11:45:00Z",
+    );
+    expect(titles[2].textContent).toBe("Skill: Skill 2");
   });
 });
 
@@ -186,7 +196,7 @@ describe("D3Chart hydration integration", () => {
 
     // Both should have tooltips
     const titles = document.querySelectorAll("circle title");
-    expect(titles.length).toBe(2);
+    expect(titles.length).toBe(3);
   });
 });
 

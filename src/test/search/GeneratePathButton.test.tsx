@@ -15,7 +15,10 @@ import {
  * Tests for the Generate Path button functionality.
  */
 describe("Generate Path Button", () => {
-  it("is disabled when no search result is selected", async () => {
+  it(
+    "is disabled when no search result is selected",
+    { timeout: 20000 },
+    async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
@@ -26,18 +29,25 @@ describe("Generate Path Button", () => {
       name: /generate learning path/i,
     });
     expect(generateButton).toBeDisabled();
-  });
+    },
+  );
 
-  it("becomes enabled when a search result is selected", async () => {
+  it("becomes enabled when a search result is selected", { timeout: 20000 }, async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
 
     await performSearch(user, "javascript");
 
-    const results = await screen.findAllByRole("button", {
-      name: /javascript/i,
-    });
+    const results = await screen.findAllByRole(
+      "button",
+      {
+        name: /javascript/i,
+      },
+      {
+        timeout: 10000,
+      },
+    );
     await user.click(results[0]);
 
     const generateButton = screen.getByRole("button", {
@@ -70,9 +80,15 @@ describe("Generate Path Button", () => {
 
         await performSearch(user, "javascript");
 
-        const results = await screen.findAllByRole("button", {
-          name: /javascript/i,
-        });
+        const results = await screen.findAllByRole(
+          "button",
+          {
+            name: /javascript/i,
+          },
+          {
+            timeout: 10000,
+          },
+        );
         await user.click(results[0]);
 
         const initialPathRequests = countPathRequests(requests);

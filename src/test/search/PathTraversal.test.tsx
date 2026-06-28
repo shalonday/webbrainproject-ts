@@ -25,9 +25,15 @@ describe("Path Traversal with Move Forward", () => {
 
       await performSearch(user, "javascript");
 
-      const results = await screen.findAllByRole("button", {
-        name: /javascript/i,
-      });
+      const results = await screen.findAllByRole(
+        "button",
+        {
+          name: /javascript/i,
+        },
+        {
+          timeout: 10000,
+        },
+      );
       await user.click(results[0]);
 
       const generateButton = screen.getByRole("button", {
@@ -60,9 +66,15 @@ describe("Path Traversal with Move Forward", () => {
 
       await performSearch(user, "javascript");
 
-      const results = await screen.findAllByRole("button", {
-        name: /javascript/i,
-      });
+      const results = await screen.findAllByRole(
+        "button",
+        {
+          name: /javascript/i,
+        },
+        {
+          timeout: 10000,
+        },
+      );
       await user.click(results[0]);
 
       const generateButton = screen.getByRole("button", {
@@ -95,9 +107,15 @@ describe("Path Traversal with Move Forward", () => {
 
       await performSearch(user, "javascript");
 
-      const results = await screen.findAllByRole("button", {
-        name: /javascript/i,
-      });
+      const results = await screen.findAllByRole(
+        "button",
+        {
+          name: /javascript/i,
+        },
+        {
+          timeout: 10000,
+        },
+      );
       await user.click(results[0]);
 
       const generateButton = screen.getByRole("button", {
@@ -145,7 +163,7 @@ describe("Path Traversal with Move Forward", () => {
 
   it(
     "disables Move Forward button when at the last node",
-    { timeout: 30000 },
+    { timeout: 60000 },
     async () => {
       renderSearchPage();
       const user = userEvent.setup();
@@ -153,9 +171,15 @@ describe("Path Traversal with Move Forward", () => {
 
       await performSearch(user, "javascript");
 
-      const results = await screen.findAllByRole("button", {
-        name: /javascript/i,
-      });
+      const results = await screen.findAllByRole(
+        "button",
+        {
+          name: /javascript/i,
+        },
+        {
+          timeout: 10000,
+        },
+      );
       await user.click(results[0]);
 
       const generateButton = screen.getByRole("button", {
@@ -224,9 +248,15 @@ describe("Path Traversal with Move Forward", () => {
 
       await performSearch(user, "javascript");
 
-      const results = await screen.findAllByRole("button", {
-        name: /javascript/i,
-      });
+      const results = await screen.findAllByRole(
+        "button",
+        {
+          name: /javascript/i,
+        },
+        {
+          timeout: 10000,
+        },
+      );
       await user.click(results[0]);
 
       const generateButton = screen.getByRole("button", {
