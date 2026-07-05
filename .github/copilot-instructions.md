@@ -80,3 +80,38 @@ When navigating a learning path (Move Forward), these rules govern node ordering
 Focus on graph algorithms and educational UX when implementing features.
 
 Run all commands on Git Bash instead of Powershell
+
+## Coding style for AI assistants
+
+When generating, refactoring, or suggesting code, follow these rules to maximize human readability and maintainability:
+
+- **Readability**: Prefer clarity over cleverness. Use descriptive names; avoid one-letter names except loop indices.
+- **Modularity**: Break complex logic into small functions (single responsibility, ideally under ~40 lines).
+- **Naming**: Name functions for intent, e.g. `buildSigmaGraphFromTree`, `formatTimestampForDisplay`.
+- **Comments**: Add concise inline comments for non-obvious logic and a short header comment at the top of modules explaining purpose.
+- **JSDoc**: Include JSDoc for all exported functions and types with `@param` and `@returns` descriptions.
+- **Pure functions**: Prefer pure/value-returning functions; make mutation explicit in names when mutating.
+- **Tests**: Add or update unit tests for new behavior and significant refactors.
+- **Refactor practice**: When proposing refactors, include a small, behavior-preserving diff and tests if possible.
+- **Examples**: Provide a short usage example or code comment when helpful.
+
+### Suggested JSDoc + refactor pattern
+
+Example JSDoc for an exported function:
+
+```ts
+/**
+ * Builds a deterministic Graphology graph from a WebBrain tree.
+ *
+ * @param params - Creation options and input tree
+ * @returns A directed Graphology graph with node and edge attributes for Sigma.
+ */
+export function buildSigmaGraph(params: CreateSigmaGraphParams): DirectedGraph<...> { ... }
+```
+
+Refactor pattern:
+
+- Extract helpers: `createNodes(graph, nodes, options)`, `createEdges(graph, links, options)`, `getNodePayload(node, index, total, options)`
+- Keep the top-level function small: orchestration only, delegate details to helpers.
+
+When in doubt, prioritize human readers: other engineers will maintain this code for years.
