@@ -151,6 +151,7 @@ Define a renderer-agnostic integration boundary so Sigma can be swapped in witho
 ### Objective
 
 Introduce Sigma stack and a deterministic data adapter from WB tree to Graphology graph.
+Use a deterministic UMAP projection for node coordinates and require embeddings on every node.
 
 ### Files
 
@@ -169,21 +170,31 @@ Introduce Sigma stack and a deterministic data adapter from WB tree to Grapholog
    2. Preserve stable IDs: node `uuid`, edge `uuid`.
    3. Attach attributes required for style/state updates.
 4. Implement `sigma-attributes.ts` helper functions to map semantic state to Sigma visual attributes.
-5. Ensure adapter does not alter selection/path semantics; it only maps data.
+   1. Reserve Sigma `type` for renderer program keys only (for example `"circle"`).
+   2. Store WB domain node type in a separate `wbType` attribute (for example `"skill" | "url"`).
+   3. Update adapter/tests to read WB semantics from `wbType` to avoid `type` collisions.
+5. Update the Sigma layout helper to project `embedding` vectors through deterministic UMAP.
+6. Fail fast if any node is missing an embedding so incomplete graph data is surfaced early.
+7. Ensure adapter does not alter selection/path semantics; it only maps data.
 
 ### Deliverables
 
 1. Repeatable graph adapter producing stable graph structure.
 2. Attribute helpers ready for style parity.
+3. Deterministic embedding-based coordinates with strict embedding validation.
 
 ### Validation
 
 1. Add unit tests for adapter determinism and ID mapping.
-2. `npm run test:run`
+2. Add/maintain unit tests verifying Sigma `type` vs WB `wbType` attribute separation.
+3. Add unit tests covering deterministic UMAP projection and embedding validation failures.
+4. `npm run test:run`
 
 ### Exit Criteria
 
 1. WB tree converts to Sigma graph with deterministic node/edge identity and attributes.
+2. Sigma program attributes and WB semantic attributes are unambiguous (`type` vs `wbType`).
+3. Node coordinates use deterministic UMAP and fail fast when embeddings are missing.
 
 ## Phase 3: Sigma Renderer Core (Visual Parity)
 
