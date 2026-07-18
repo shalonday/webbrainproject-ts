@@ -7,6 +7,8 @@ interface ForceLayoutNode {
   embedding?: number[];
 }
 
+const POSITION_SPREAD_FACTOR = 3000;
+
 /**
  * Creates a deterministic pseudo-random number generator from a numeric seed.
  *
@@ -81,6 +83,21 @@ function hasUsableEmbeddings(nodes: ForceLayoutNode[]): boolean {
 function projectEmbeddingsWithUmap(
   nodes: ForceLayoutNode[],
 ): Record<string, { x: number; y: number }> {
+  // These branches provide deterministic, trivial layouts that avoid running a full force algorithm for tiny graphs (1 or 2 nodes)
+  // and guarantee visually sensible starting positions.
+  if (nodes.length === 1) {
+    return {
+      [nodes[0].uuid]: scalePosition({ x: 0, y: 0 }),
+    };
+  }
+
+  if (nodes.length === 2) {
+    return {
+      [nodes[0].uuid]: scalePosition({ x: -45, y: 0 }),
+      [nodes[1].uuid]: scalePosition({ x: 45, y: 0 }),
+    };
+  }
+
   const embeddings = nodes.map((node) => node.embedding ?? []);
   const umap = new UMAP({
     nComponents: 2,
@@ -120,13 +137,29 @@ function projectEmbeddingsWithUmap(
     const maxLength = 110;
     const scale = length > maxLength && length > 0 ? maxLength / length : 1;
 
-    output[node.uuid] = {
-      x: Number((centeredX * scale).toFixed(3)),
-      y: Number((centeredY * scale).toFixed(3)),
-    };
+    output[node.uuid] = scalePosition({
+      x: centeredX * scale,
+      y: centeredY * scale,
+    });
   }
 
   return output;
+}
+
+/**
+ * Applies a global spread factor to a Sigma layout position.
+ *
+ * @param position - The centered layout position to scale outward.
+ * @returns The scaled position with a larger node-to-node spacing.
+ */
+function scalePosition(position: { x: number; y: number }): {
+  x: number;
+  y: number;
+} {
+  return {
+    x: Number((position.x * POSITION_SPREAD_FACTOR).toFixed(3)),
+    y: Number((position.y * POSITION_SPREAD_FACTOR).toFixed(3)),
+  };
 }
 
 /**

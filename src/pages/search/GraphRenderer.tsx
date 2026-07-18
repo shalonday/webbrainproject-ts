@@ -1,10 +1,11 @@
 import D3Chart from "./D3Chart";
 import type { GraphRendererProps } from "./graph-renderer-types";
+import SigmaChart from "./SigmaChart";
 
 type RendererMode = "d3" | "sigma";
 
-// Phase 1 keeps D3 as the default implementation while Sigma is developed.
-const ACTIVE_RENDERER: RendererMode = "d3";
+// Flip this local constant to "sigma" when the Sigma renderer should be active.
+const ACTIVE_RENDERER: RendererMode = "sigma";
 
 /**
  * Renderer boundary that allows swapping graph implementations without changing
@@ -15,8 +16,7 @@ function GraphRenderer(props: GraphRendererProps) {
     case "d3":
       return <D3Chart {...props} />;
     case "sigma":
-      // Sigma implementation is intentionally deferred to later phases.
-      return <D3Chart {...props} />;
+      return <SigmaChart {...props} />;
     default:
       return <D3Chart {...props} />;
   }
