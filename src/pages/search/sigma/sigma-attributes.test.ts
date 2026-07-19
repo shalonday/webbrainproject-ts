@@ -36,8 +36,8 @@ const PATH_TREE: Tree = {
   nodes: [SKILL_NODE, URL_NODE],
 };
 
-const MAX_CENTER_DISTANCE = 120;
-const MAX_LINKED_DISTANCE = 200;
+const MAX_CENTER_DISTANCE = 1000;
+const MAX_LINKED_DISTANCE = 5000;
 
 describe("sigma-attributes", () => {
   it("projects embeddings into deterministic 2D positions", () => {

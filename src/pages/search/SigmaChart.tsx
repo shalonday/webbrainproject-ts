@@ -1,3 +1,5 @@
+import { getCameraStateToFitViewportToNodes } from "@sigma/utils";
+import type { Attributes } from "graphology-types";
 import { useEffect, useMemo, useRef } from "react";
 import Sigma from "sigma";
 
@@ -56,7 +58,6 @@ function SigmaChart({
   markedForStudyNodeIds = [],
 }: SigmaChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-
   const sigmaGraph = useMemo(
     () =>
       createSigmaGraph({
@@ -90,19 +91,16 @@ function SigmaChart({
 
     const renderer = new Sigma(sigmaGraph, container, SIGMA_SETTINGS);
 
-    renderer.on("clickNode", ({ node }) => {
+    renderer.on("clickNode", ({ node }: { node: string }) => {
       onNodeClick(node);
     });
 
     if (initialFocusNodeId && sigmaGraph.hasNode(initialFocusNodeId)) {
-      const focusNode = sigmaGraph.getNodeAttributes(initialFocusNodeId);
-
-      renderer.getCamera().setState({
-        angle: 0,
-        ratio: 1,
-        x: focusNode.x,
-        y: focusNode.y,
-      });
+      const newCameraState = getCameraStateToFitViewportToNodes(
+        renderer as unknown as Sigma<Attributes, Attributes, Attributes>,
+        [initialFocusNodeId],
+      );
+      renderer.getCamera().animate(newCameraState);
     }
 
     return () => {

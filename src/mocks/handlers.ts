@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 
 import { BASE_URL } from "../common-constants";
-import type { Tree } from "../types/types";
+import type { Tree, WBNode } from "../types/types";
 
 const mockTreeData: Tree = {
   nodes: [
@@ -343,6 +343,20 @@ const mockTreeData: Tree = {
     },
   ],
 };
+
+// Ensure every mock node has an embedding so Sigma layout utilities can run during tests.
+mockTreeData.nodes = mockTreeData.nodes.map((node, index) =>
+  Object.assign({}, node, {
+    embedding: Array.isArray((node as WBNode).embedding)
+      ? (node as WBNode).embedding
+      : // deterministic pseudo-embeddings using node index
+        [
+          ((index * 37) % 100) / 100,
+          ((index * 61) % 100) / 100,
+          ((index * 17) % 100) / 100,
+        ],
+  }),
+);
 
 /**
  *

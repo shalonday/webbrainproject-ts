@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.6",
+    "@sigma/utils": "^3.0.0",
     "@tanstack/react-query": "^5.90.16",
     "@testing-library/user-event": "^14.6.1",
     "axios": "^1.13.2",

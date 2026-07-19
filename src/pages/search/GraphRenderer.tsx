@@ -4,7 +4,6 @@ import SigmaChart from "./SigmaChart";
 
 type RendererMode = "d3" | "sigma";
 
-// Flip this local constant to "sigma" when the Sigma renderer should be active.
 const ACTIVE_RENDERER: RendererMode = "sigma";
 
 /**

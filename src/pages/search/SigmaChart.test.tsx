@@ -4,49 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Tree } from "../../types/types";
 import SigmaChart from "./SigmaChart";
 
-const sigmaInstances: Array<{
-  handlers: Record<string, (...args: unknown[]) => void>;
-}> = [];
-
-vi.mock("sigma", () => {
-  /**
-   *
-   */
-  class MockSigma {
-    handlers: Record<string, (...args: unknown[]) => void> = {};
-
-    /**
-     *
-     */
-    constructor() {
-      sigmaInstances.push(this);
-    }
-
-    /**
-     *
-     */
-    getCamera() {
-      return {
-        setState: vi.fn(),
-      };
-    }
-
-    /**
-     *
-     */
-    kill() {}
-
-    /**
-     *
-     */
-    on(event: string, handler: (...args: unknown[]) => void) {
-      this.handlers[event] = handler;
-      return this;
-    }
-  }
-
-  return { default: MockSigma };
-});
+const sigmaInstances = (globalThis as { __sigmaMockInstances?: Array<{ handlers: Record<string, (...args: unknown[]) => void> }> }).__sigmaMockInstances ?? [];
 
 const TREE: Tree = {
   links: [{ source: "skill-1", target: "url-1", uuid: "edge-1" }],
