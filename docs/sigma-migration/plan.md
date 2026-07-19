@@ -29,7 +29,14 @@ Out of scope for PoC v1:
 4. [src/pages/search/D3Chart.tsx](../../src/pages/search/D3Chart.tsx)
 5. [src/pages/search/D3Chart.test.tsx](../../src/pages/search/D3Chart.test.tsx)
 6. [src/test/search/SearchGraphDisplay.test.tsx](../../src/test/search/SearchGraphDisplay.test.tsx)
-7. [src/common-constants.ts](../../src/common-constants.ts)
+7. [src/test/search/GeneratePathButton.test.tsx](../../src/test/search/GeneratePathButton.test.tsx)
+8. [src/test/search/LearningPathDisplay.test.tsx](../../src/test/search/LearningPathDisplay.test.tsx)
+9. [src/test/search/PathTraversal.test.tsx](../../src/test/search/PathTraversal.test.tsx)
+10. [src/test/search/SearchInput.test.tsx](../../src/test/search/SearchInput.test.tsx)
+11. [src/test/search/SearchTextResults.test.tsx](../../src/test/search/SearchTextResults.test.tsx)
+12. [src/test/search/Router.test.tsx](../../src/test/search/Router.test.tsx)
+13. [src/test/search/searchTestUtils.ts](../../src/test/search/searchTestUtils.ts)
+14. [src/common-constants.ts](../../src/common-constants.ts)
 
 ## Implementation Strategy
 
@@ -249,23 +256,14 @@ Implement required interaction parity from spec.
 
 ### Tasks
 
-1. Pan/zoom parity:
-   1. Support scale range 0.5 to 4.
-   2. Preserve expected viewport behavior for mouse/trackpad.
-2. Node click parity:
+1. Node click parity:
    1. Map Sigma node click event to `onNodeClick(nodeId)`.
-3. Camera follow parity:
+2. Camera follow parity:
    1. Support `initialFocusNodeId`.
    2. Seed focus position near baseline target equivalent (400x400 view, focus around x=200, y=100 semantics).
    3. Implement LERP camera follow while layout settles.
    4. Use baseline constants: LERP 0.18, settle threshold 0.5 px.
    5. Preserve zoom while camera translates.
-4. Touch parity:
-   1. Pinch-to-zoom maps to same zoom range.
-   2. Two-finger pan updates camera translation.
-   3. Single tap on node triggers same click callback.
-   4. Call `onNodeTouchStart` and `onNodeTouchEnd` props.
-   5. Prevent page scroll conflicts while interacting with graph area.
 
 ### Deliverables
 
@@ -293,6 +291,13 @@ Preserve metadata visibility and test stability across renderer internals.
 2. New (if needed): [src/test/search/graphTestAdapter.ts](../../src/test/search/graphTestAdapter.ts)
 3. [src/pages/search/D3Chart.test.tsx](../../src/pages/search/D3Chart.test.tsx)
 4. [src/test/search/SearchGraphDisplay.test.tsx](../../src/test/search/SearchGraphDisplay.test.tsx)
+5. [src/test/search/GeneratePathButton.test.tsx](../../src/test/search/GeneratePathButton.test.tsx)
+6. [src/test/search/LearningPathDisplay.test.tsx](../../src/test/search/LearningPathDisplay.test.tsx)
+7. [src/test/search/PathTraversal.test.tsx](../../src/test/search/PathTraversal.test.tsx)
+8. [src/test/search/SearchInput.test.tsx](../../src/test/search/SearchInput.test.tsx)
+9. [src/test/search/SearchTextResults.test.tsx](../../src/test/search/SearchTextResults.test.tsx)
+10. [src/test/search/Router.test.tsx](../../src/test/search/Router.test.tsx)
+11. [src/test/search/searchTestUtils.ts](../../src/test/search/searchTestUtils.ts)
 
 ### Tasks
 
@@ -304,7 +309,15 @@ Preserve metadata visibility and test stability across renderer internals.
    2. Done/study distinguishability.
    3. Node interaction hooks.
 3. Migrate tests to avoid hard-coding SVG-only assumptions.
-4. Keep parity checks behavior-oriented.
+4. Preserve parity for the full `src/test/search` folder, including:
+   1. Graph display and node styling assertions.
+   2. Search input focus, keyboard submission, and no-refetch behavior.
+   3. Search text result rendering and selection cues.
+   4. Generate Path enablement, path request issuance, and graph highlight updates.
+   5. Learning Path display, ordering, clickability, and dimming behavior.
+   6. Path traversal, Move Forward behavior, current/done state updates, and skill-test routing.
+   7. Router behavior for root, `/paths/:startId/:endId`, and `/skill-test/:nodeId` routes.
+5. Keep parity checks behavior-oriented.
 
 ### Deliverables
 
@@ -313,12 +326,13 @@ Preserve metadata visibility and test stability across renderer internals.
 
 ### Validation
 
-1. `npm run test:run`
-2. Verify checklist item coverage in test names or comments.
+1. `npm run test:run -- src/test/search`
+2. `npm run test:run`
+3. Verify checklist item coverage in test names or comments for the full search test folder.
 
 ### Exit Criteria
 
-1. Graph tests validate parity semantics, not renderer-specific DOM structure.
+1. Graph and search-flow tests validate parity semantics, not renderer-specific DOM structure.
 
 ## Phase 6: Cutover, Cleanup, and Documentation
 

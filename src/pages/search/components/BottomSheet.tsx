@@ -29,11 +29,11 @@ interface BottomSheetProps {
   isMoveForwardEnabled: boolean;
   isSearchActive: boolean;
   onGeneratePath: () => void;
-  onKeyDown: (event: React.KeyboardEvent) => void;
   onMoveForward: () => void;
   onPathNodeClick: (node: WBNode) => void;
   onResultSelect: (nodeId: string) => void;
   onSearchChange: (value: string) => void;
+  onSearchSubmit: (value: string) => void;
   pathTree: Tree | null;
   recommendedNodes: WBNode[];
   searchResults: WBNode[];
@@ -51,11 +51,11 @@ interface BottomSheetProps {
  * @param props.isMoveForwardEnabled - Whether the Move Forward action is enabled.
  * @param props.isSearchActive - Whether a search is currently active.
  * @param props.onGeneratePath - Callback to generate a learning path.
- * @param props.onKeyDown - Keyboard event handler for the search input.
  * @param props.onMoveForward - Callback to move forward in the path.
  * @param props.onPathNodeClick - Callback when a path node is clicked.
  * @param props.onResultSelect - Callback when a search result is selected.
  * @param props.onSearchChange - Callback when the search term changes.
+ * @param props.onSearchSubmit - Callback when the search input is submitted.
  * @param props.pathTree - Current learning path tree, or null if none.
  * @param props.recommendedNodes - Array of recommended nodes to display.
  * @param props.searchResults - Array of nodes matching the search.
@@ -69,11 +69,11 @@ export function BottomSheet({
   isMoveForwardEnabled,
   isSearchActive,
   onGeneratePath,
-  onKeyDown,
   onMoveForward,
   onPathNodeClick,
   onResultSelect,
   onSearchChange,
+  onSearchSubmit,
   pathTree,
   recommendedNodes,
   searchResults,
@@ -251,7 +251,7 @@ export function BottomSheet({
       <SearchInput
         value={searchTerm}
         onSearchChange={onSearchChange}
-        onKeyDown={onKeyDown}
+        onSearchSubmit={onSearchSubmit}
       />
 
       {/* Results or Recommended Section */}
