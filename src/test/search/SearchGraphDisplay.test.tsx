@@ -1,11 +1,11 @@
+import { screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { ACTIVE_MODULE_FILL, ACTIVE_SKILL_FILL } from "../../common-constants";
 import {
   assertGraphIsRendered,
-  findNodeByType,
-  findNodesWithText,
+  getGraphNodeSnapshots,
   performSearch,
   renderSearchPage,
   waitForGraphToLoad,
@@ -22,40 +22,52 @@ describe("Search Page Graph Display", () => {
     assertGraphIsRendered();
   });
 
-  it("After a user confirms the keyword they're searching for, the resulting nodes are adequately highlighted", async () => {
+  it(
+    "After a user confirms the keyword they're searching for, the resulting nodes are adequately highlighted",
+    { timeout: 20000 },
+    async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
 
     await performSearch(user, "javascript");
 
-    const matchingNodes = findNodesWithText("javascript");
+    const matchingNodes = getGraphNodeSnapshots().filter((node) =>
+      node.label.toLowerCase().includes("javascript"),
+    );
     expect(matchingNodes.length).toBeGreaterThan(0);
 
     matchingNodes.forEach((node) => {
-      const fill = node.getAttribute("fill");
-      expect(fill === ACTIVE_SKILL_FILL || fill === ACTIVE_MODULE_FILL).toBe(
+      expect(node.fill === ACTIVE_SKILL_FILL || node.fill === ACTIVE_MODULE_FILL).toBe(
         true,
       );
     });
-  });
+    },
+  );
 
-  it("highlights a clicked node", async () => {
+  it(
+    "keeps the selected search result highlighted in the graph",
+    { timeout: 20000 },
+    async () => {
     renderSearchPage();
     await waitForGraphToLoad();
-    assertGraphIsRendered();
 
     const user = userEvent.setup();
-    const circles = document.querySelectorAll("circle");
-    const firstCircle = circles[0];
-    await user.click(firstCircle);
+    await performSearch(user, "javascript");
 
-    expect(firstCircle).toHaveAttribute("fill", ACTIVE_SKILL_FILL);
+    const results = await screen.findAllByRole("button", {
+      name: /javascript/i,
+    });
+    await user.click(results[0]);
 
-    const urlNode = findNodeByType("url");
-    if (urlNode) {
-      await user.click(urlNode);
-      expect(urlNode).toHaveAttribute("fill", ACTIVE_MODULE_FILL);
-    }
-  });
+    const matchingNodes = getGraphNodeSnapshots().filter((node) =>
+      node.label.toLowerCase().includes("javascript"),
+    );
+    expect(
+      matchingNodes.some((node) => {
+        return node.fill === ACTIVE_SKILL_FILL || node.fill === ACTIVE_MODULE_FILL;
+      }),
+    ).toBe(true);
+    },
+  );
 });

@@ -7,7 +7,28 @@ import { expect } from "vitest";
 import { BASE_URL } from "../../common-constants";
 import { SkillTreesContextProvider } from "../../contexts/SkillTreesContext";
 import Search from "../../pages/search/Search";
+import { DEFAULT_START_NODE_ID } from "../../pages/search/search-utils";
 import type { WBNode } from "../../types/types";
+
+interface GraphNodeSnapshot {
+  current: boolean;
+  dimmed: boolean;
+  done: boolean;
+  fill: string | null;
+  id: string;
+  label: string;
+  opacity: string | null;
+  study: boolean;
+  type: string;
+}
+
+interface GraphEdgeSnapshot {
+  done: boolean;
+  fill: string | null;
+  id: string;
+  inPath: boolean;
+  opacity: string | null;
+}
 
 /**
  * Renders the Search page component with all necessary providers.
@@ -47,6 +68,137 @@ export async function waitForGraphToLoad(): Promise<void> {
 }
 
 /**
+ * Finds the renderer-neutral observability root exposed by the graph renderer.
+ *
+ * @returns The hidden observability container, when rendered.
+ */
+function getGraphObservabilityRoot(): HTMLElement | null {
+  return screen.queryByTestId("sigma-observability") as HTMLElement | null;
+}
+
+/**
+ * Reads a renderer-neutral snapshot for a graph node element.
+ *
+ * @param element - The DOM element representing the node.
+ * @returns A normalized node snapshot.
+ */
+function getGraphNodeSnapshot(element: Element): GraphNodeSnapshot {
+  const dataNodeId = element.getAttribute("data-node-id");
+
+  if (dataNodeId) {
+    return {
+      current: element.getAttribute("data-current") === "true",
+      dimmed: element.getAttribute("data-opacity") !== "1",
+      done: element.getAttribute("data-done") === "true",
+      fill: element.getAttribute("data-fill"),
+      id: dataNodeId,
+      label: element.getAttribute("data-label") ?? "",
+      opacity: element.getAttribute("data-opacity"),
+      study: element.getAttribute("data-study") === "true",
+      type: element.getAttribute("data-node-type") ?? "",
+    };
+  }
+
+  const nodeData = (element as unknown as { __data__?: WBNode }).__data__;
+
+  return {
+    current: element.getAttribute("data-current") === "true",
+    dimmed: element.getAttribute("opacity") !== "1",
+    done: element.getAttribute("data-done") === "true",
+    fill: element.getAttribute("fill"),
+    id: nodeData?.uuid ?? "",
+    label: nodeData?.name ?? "",
+    opacity: element.getAttribute("opacity"),
+    study: element.getAttribute("data-study") === "true",
+    type: nodeData?.type ?? "",
+  };
+}
+
+/**
+ * Reads a renderer-neutral snapshot for a graph edge element.
+ *
+ * @param element - The DOM element representing the edge.
+ * @returns A normalized edge snapshot.
+ */
+function getGraphEdgeSnapshot(element: Element): GraphEdgeSnapshot {
+  const dataEdgeId = element.getAttribute("data-edge-id");
+
+  if (dataEdgeId) {
+    return {
+      done: element.getAttribute("data-done") === "true",
+      fill: element.getAttribute("data-fill"),
+      id: dataEdgeId,
+      inPath: element.getAttribute("data-in-path") === "true",
+      opacity: element.getAttribute("data-opacity"),
+    };
+  }
+
+  return {
+    done: false,
+    fill: element.getAttribute("stroke"),
+    id: element.getAttribute("data-edge-id") ?? "",
+    inPath: false,
+    opacity: element.getAttribute("opacity"),
+  };
+}
+
+/**
+ * Collects the rendered graph node elements from either renderer.
+ *
+ * @returns The current node elements rendered in the graph.
+ */
+function getGraphNodeElements(): Element[] {
+  const observabilityRoot = getGraphObservabilityRoot();
+
+  if (observabilityRoot) {
+    return Array.from(
+      observabilityRoot.querySelectorAll(
+        '[data-testid="sigma-nodes"] [data-node-id]',
+      ),
+    );
+  }
+
+  return Array.from(document.querySelectorAll("circle"));
+}
+
+/**
+ * Collects the rendered graph edge elements from either renderer.
+ *
+ * @returns The current edge elements rendered in the graph.
+ */
+function getGraphEdgeElements(): Element[] {
+  const observabilityRoot = getGraphObservabilityRoot();
+
+  if (observabilityRoot) {
+    return Array.from(
+      observabilityRoot.querySelectorAll(
+        '[data-testid="sigma-edges"] [data-edge-id]',
+      ),
+    );
+  }
+
+  return Array.from(document.querySelectorAll("line"));
+}
+
+/**
+ * Returns normalized snapshots for all rendered graph nodes.
+ *
+ * @returns Array of graph node snapshots.
+ */
+export function getGraphNodeSnapshots(): GraphNodeSnapshot[] {
+  return getGraphNodeElements().map(getGraphNodeSnapshot);
+}
+
+/**
+ * Returns normalized snapshots for all rendered graph edges.
+ *
+ * @returns Array of graph edge snapshots.
+ */
+export function getGraphEdgeSnapshots(): GraphEdgeSnapshot[] {
+  return getGraphEdgeElements().map(getGraphEdgeSnapshot);
+}
+
+/**
  * Gets the search input element from the page.
  *
  * @returns The search input HTMLElement.
@@ -74,17 +226,23 @@ export async function performSearch(
 
 /**
  * Asserts that the D3 graph is properly rendered in the DOM.
- * Checks for SVG element, circle nodes, and line edges.
+ * Checks for renderer-neutral graph observability, falling back to SVG.
  */
 export function assertGraphIsRendered(): void {
+  const observabilityRoot = getGraphObservabilityRoot();
+
+  if (observabilityRoot) {
+    expect(observabilityRoot).toBeInTheDocument();
+    expect(getGraphNodeElements().length).toBeGreaterThan(0);
+    expect(getGraphEdgeElements().length).toBeGreaterThan(0);
+    return;
+  }
+
   const svgElement = document.querySelector("svg");
   expect(svgElement).toBeInTheDocument();
 
-  const circles = document.querySelectorAll("circle");
-  expect(circles.length).toBeGreaterThan(0);
-
-  const lines = document.querySelectorAll("line");
-  expect(lines.length).toBeGreaterThan(0);
+  expect(getGraphNodeElements().length).toBeGreaterThan(0);
+  expect(getGraphEdgeElements().length).toBeGreaterThan(0);
 }
 
 /**
@@ -93,12 +251,11 @@ export function assertGraphIsRendered(): void {
  * @param text - The text to search for in node names.
  * @returns Array of SVG circle elements that match.
  */
-export function findNodesWithText(text: string): SVGCircleElement[] {
-  const circles = document.querySelectorAll("circle");
-  return Array.from(circles).filter((circle) => {
-    const nodeData = (circle as unknown as { __data__: WBNode }).__data__;
-    return nodeData.name.toLowerCase().includes(text.toLowerCase());
-  }) as SVGCircleElement[];
+export function findNodesWithText(text: string): Element[] {
+  return getGraphNodeElements().filter((element) => {
+    const snapshot = getGraphNodeSnapshot(element);
+    return snapshot.label.toLowerCase().includes(text.toLowerCase());
+  });
 }
 
 /**
@@ -107,11 +264,11 @@ export function findNodesWithText(text: string): SVGCircleElement[] {
  * @param type - The node type to search for (e.g., "skill" or "url").
  * @returns The first matching SVG circle element, or undefined if none found.
  */
-export function findNodeByType(type: string): SVGCircleElement | undefined {
-  const circles = document.querySelectorAll("circle");
-  return Array.from(circles).find(
-    (circle) => circle.getAttribute("type") === type,
-  ) as SVGCircleElement | undefined;
+export function findNodeByType(type: string): Element | undefined {
+  return getGraphNodeElements().find((element) => {
+    const snapshot = getGraphNodeSnapshot(element);
+    return snapshot.type === type;
+  });
 }
 
 /**
@@ -181,26 +338,51 @@ export async function navigateToSkillNode(
   let attempts = 0;
 
   while (!skillNodeFound && attempts < maxAttempts) {
+    const currentNode = getGraphNodeSnapshots().find((node) => node.current);
+    if (currentNode?.type === "skill" && currentNode.id !== DEFAULT_START_NODE_ID) {
+      skillNodeFound = true;
+      break;
+    }
+
+    if (moveForwardButton.hasAttribute("disabled")) {
+      if (screen.queryByRole("dialog", { name: /skill assessment/i })) {
+        skillNodeFound = true;
+        break;
+      }
+
+      await waitFor(
+        () => {
+          const activeNode = getGraphNodeSnapshots().find((node) => node.current);
+          if (activeNode?.type === "skill" && activeNode.id !== DEFAULT_START_NODE_ID) {
+            skillNodeFound = true;
+            return;
+          }
+
+          throw new Error("Move Forward button is disabled before a skill node was reached");
+        },
+        { timeout: 1000 },
+      ).catch(() => {
+        // If the button is disabled because the modal is open, the caller will handle it.
+      });
+
+      if (skillNodeFound) {
+        break;
+      }
+    }
+
     await user.click(moveForwardButton);
 
     await waitFor(
       () => {
-        // The current node is marked on the D3 chart.
-        const currentNode = document.querySelector(
-          'circle[data-current="true"]',
-        ) as SVGCircleElement | null;
+        const currentNode = getGraphNodeSnapshots().find(
+          (node) => node.current,
+        );
         if (!currentNode) {
           throw new Error("Current node not found");
         }
 
-        const nodeData = (currentNode as unknown as { __data__?: WBNode })
-          .__data__;
-        if (!nodeData) {
-          throw new Error("Current node data not found");
-        }
-
-        const isSkillNode = nodeData.type === "skill";
-        const isNotENode = nodeData.name !== "E";
+        const isSkillNode = currentNode.type === "skill";
+        const isNotENode = currentNode.id !== DEFAULT_START_NODE_ID;
 
         if (isSkillNode && isNotENode) {
           skillNodeFound = true;

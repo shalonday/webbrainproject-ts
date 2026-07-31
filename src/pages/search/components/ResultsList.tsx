@@ -46,6 +46,7 @@ export function ResultsList({
           <ListItem key={node.uuid} disablePadding>
             <ListItemButton
               selected={selectedResultId === node.uuid}
+              data-selected={selectedResultId === node.uuid ? "true" : "false"}
               onClick={() => onResultSelect(node.uuid)}
               sx={{
                 borderRadius: 2,
