@@ -1,19 +1,8 @@
 import { useMemo, useState } from "react";
 
-import type { Tree, WBNode } from "../../types/types";
-import D3Chart from "./D3Chart";
+import type { SearchPageChartProps } from "./graph-renderer-types";
+import GraphRenderer from "./GraphRenderer";
 import { resolveInitialFocusNodeId } from "./search-utils";
-
-interface SearchPageChartProps {
-  currentNode?: WBNode | null;
-  doneLinkIds?: string[];
-  doneNodeIds?: string[];
-  doneNodeTimestamps?: Record<string, string>;
-  highlightedNodeIds?: string[];
-  markedForStudyNodeIds?: string[];
-  pathTree?: Tree | null;
-  universalTree: Tree;
-}
 
 /**
  * Displays the skill tree visualization using D3Chart with node selection support.
@@ -37,6 +26,8 @@ function SearchPageChart({
   doneLinkIds = [],
   doneNodeTimestamps = {},
   markedForStudyNodeIds = [],
+  onNodeTouchStart,
+  onNodeTouchEnd,
 }: SearchPageChartProps) {
   const [displayedTree] = useState(universalTree);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -72,7 +63,7 @@ function SearchPageChart({
 
   return (
     <>
-      <D3Chart
+      <GraphRenderer
         currentNode={currentNode}
         doneLinkIds={doneLinkIds}
         doneNodeIds={doneNodeIds}
@@ -80,6 +71,8 @@ function SearchPageChart({
         initialFocusNodeId={initialFocusNodeId}
         markedForStudyNodeIds={markedForStudyNodeIds}
         onNodeClick={handleNodeClick}
+        onNodeTouchEnd={onNodeTouchEnd}
+        onNodeTouchStart={onNodeTouchStart}
         pathTree={pathTree}
         selectedNodeIds={allSelectedNodeIds}
         tree={displayedTree}

@@ -2,9 +2,11 @@ import { screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { WBNode } from "../../types/types";
+import { DEFAULT_START_NODE_ID } from "../../pages/search/search-utils";
+import { getLocalProgress } from "../../utils/progressStorage";
 import {
   closeSkillModalIfOpen,
+  getGraphNodeSnapshots,
   navigateToSkillNode,
   performSearch,
   renderSearchPage,
@@ -149,15 +151,12 @@ describe("Path Traversal with Move Forward", () => {
         { timeout: 5000 },
       );
 
-      // Check that the first node (E) is now marked with done color
-      const circles = Array.from(document.querySelectorAll("circle"));
-      const eNode = circles.find(
-        (circle) =>
-          (circle as unknown as { __data__?: WBNode }).__data__?.name === "E",
-      );
-      expect(eNode).toBeTruthy();
-      // Done skill nodes should have DONE_SKILL_FILL color
-      expect(eNode?.getAttribute("fill")).toContain("hsl(120");
+      await waitFor(() => {
+        const progress = getLocalProgress();
+        expect(progress?.doneNodeTimestamps).toHaveProperty(
+          DEFAULT_START_NODE_ID,
+        );
+      });
     },
   );
 
@@ -376,17 +375,14 @@ describe("Path Traversal with Move Forward", () => {
         await user.click(moveForwardButton);
 
         const nodeData = await waitFor(() => {
-          const currentNode = document.querySelector(
-            "circle[data-current=\"true\"]",
-          ) as SVGCircleElement | null;
-          expect(currentNode).not.toBeNull();
+          const currentNode = getGraphNodeSnapshots().find(
+            (node) => node.current,
+          );
+          expect(currentNode).toBeTruthy();
 
-          const data = (currentNode as unknown as { __data__?: WBNode }).__data__;
-          expect(data).toBeTruthy();
-
-          if (data?.uuid && data.uuid !== lastNodeId) {
-            lastNodeId = data.uuid;
-            return data;
+          if (currentNode?.id && currentNode.id !== lastNodeId) {
+            lastNodeId = currentNode.id;
+            return currentNode;
           }
 
           throw new Error("Current node did not advance yet");

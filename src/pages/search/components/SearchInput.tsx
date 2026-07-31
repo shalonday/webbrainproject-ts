@@ -1,9 +1,10 @@
 import SearchIcon from "@mui/icons-material/Search";
 import { Box, InputAdornment, TextField } from "@mui/material";
+import type { KeyboardEvent } from "react";
 
 interface SearchInputProps {
-  onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void;
   onSearchChange: (value: string) => void;
+  onSearchSubmit: (value: string) => void;
   value: string;
 }
 
@@ -20,7 +21,7 @@ interface SearchInputProps {
 export function SearchInput({
   value,
   onSearchChange,
-  onKeyDown,
+  onSearchSubmit,
 }: SearchInputProps) {
   return (
     <Box sx={{ px: 3, pb: 2 }}>
@@ -32,7 +33,15 @@ export function SearchInput({
         fullWidth
         value={value}
         onChange={(e) => onSearchChange(e.target.value)}
-        onKeyDown={onKeyDown}
+        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+          if (event.key !== "Enter") {
+            return;
+          }
+
+          event.preventDefault();
+          const target = event.target as HTMLInputElement | null;
+          onSearchSubmit(target?.value ?? "");
+        }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">

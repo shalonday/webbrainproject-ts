@@ -1,4 +1,3 @@
-import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useSkillTreesContext } from "../../contexts/SkillTreesContext";
@@ -13,7 +12,6 @@ interface UseSearchPageStateResult {
   doneNodeIds: string[];
   doneNodeTimestamps: Record<string, string>;
   handleGeneratePath: () => Promise<void>;
-  handleKeyDown: (event: React.KeyboardEvent) => void;
   handleMoveForward: () => void;
   handleResultSelect: (nodeId: string) => void;
   handleSearch: (term: string) => void;
@@ -98,15 +96,6 @@ export function useSearchPageState(): UseSearchPageStateResult {
     [resetPath, universalTree],
   );
 
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key === "Enter") {
-        handleSearch(searchTerm);
-      }
-    },
-    [handleSearch, searchTerm],
-  );
-
   const handleResultSelect = useCallback(
     (nodeId: string) => {
       setSelectedResultId(nodeId);
@@ -122,7 +111,6 @@ export function useSearchPageState(): UseSearchPageStateResult {
     doneNodeIds,
     doneNodeTimestamps,
     handleGeneratePath,
-    handleKeyDown,
     handleMoveForward,
     handleResultSelect,
     handleSearch,

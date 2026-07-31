@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -64,9 +64,11 @@ describe("Search Page Text Results Display", () => {
     expect(results.length).toBeGreaterThan(0);
 
     const firstResult = results[0];
-    expect(firstResult.className).not.toMatch(/Mui-selected/);
+    expect(firstResult).toHaveAttribute("data-selected", "false");
 
     await user.click(firstResult);
-    expect(firstResult.className).toMatch(/Mui-selected/);
+    await waitFor(() => {
+      expect(firstResult).toHaveAttribute("data-selected", "true");
+    });
   });
 });

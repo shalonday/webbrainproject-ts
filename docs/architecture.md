@@ -17,6 +17,7 @@
 
 - `D3Chart.tsx`: owns the force simulation, zoom/drag, and renders SVG markers. Styling/highlight helpers live in `graph-styles.ts` to keep D3Chart lean.
 - Highlighting rules: path nodes/links stay fully opaque; off-path are dimmed; done nodes/links use the DONE palette; selection toggles active fills.
+- `src/pages/search/sigma/sigma-force-layout.ts`: projects Sigma node positions from embeddings with a deterministic UMAP path and throws if embeddings are missing.
 
 ## Progress persistence
 
