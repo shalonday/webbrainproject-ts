@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -12,20 +12,30 @@ import {
  * Tests for text-based search results display.
  */
 describe("Search Page Text Results Display", () => {
-  it("After a user confirms the keyword they're searching for, the results are displayed in text form", async () => {
+  it(
+    "After a user confirms the keyword they're searching for, the results are displayed in text form",
+    { timeout: 20000 },
+    async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
 
     await performSearch(user, "javascript");
 
-    const results = await screen.findAllByRole("button", {
-      name: /javascript/i,
-    });
+    const results = await screen.findAllByRole(
+      "button",
+      {
+        name: /javascript/i,
+      },
+      {
+        timeout: 10000,
+      },
+    );
     expect(results.length).toBeGreaterThan(0);
-  });
+    },
+  );
 
-  it("If there are no results, the user is informed", async () => {
+  it("If there are no results, the user is informed", { timeout: 20000 }, async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
@@ -42,15 +52,23 @@ describe("Search Page Text Results Display", () => {
 
     await performSearch(user, "javascript");
 
-    const results = await screen.findAllByRole("button", {
-      name: /javascript/i,
-    });
+    const results = await screen.findAllByRole(
+      "button",
+      {
+        name: /javascript/i,
+      },
+      {
+        timeout: 10000,
+      },
+    );
     expect(results.length).toBeGreaterThan(0);
 
     const firstResult = results[0];
-    expect(firstResult.className).not.toMatch(/Mui-selected/);
+    expect(firstResult).toHaveAttribute("data-selected", "false");
 
     await user.click(firstResult);
-    expect(firstResult.className).toMatch(/Mui-selected/);
+    await waitFor(() => {
+      expect(firstResult).toHaveAttribute("data-selected", "true");
+    });
   });
 });

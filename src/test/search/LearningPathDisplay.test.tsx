@@ -2,14 +2,26 @@ import { screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { WBNode } from "../../types/types";
 import { server } from "../setup";
 import {
   closeSkillModalIfOpen,
+  getGraphNodeSnapshots,
   performSearch,
   renderSearchPage,
   waitForGraphToLoad,
 } from "./searchTestUtils";
+
+/**
+ * Finds the rendered path node buttons in the bottom sheet.
+ *
+ * @returns The path node button elements.
+ */
+function getPathNodeButtons(): HTMLElement[] {
+  return screen.getAllByRole("button").filter((button) => {
+    const text = button.textContent || "";
+    return text.includes("Type:");
+  }) as HTMLElement[];
+}
 
 /**
  * Tests for the learning path display after path generation.
@@ -50,25 +62,17 @@ describe("Learning Path Display", () => {
 
         await user.click(generateButton);
 
-        // Wait for the path to be displayed
         await waitFor(
           () => {
-            const pathHeading = screen.queryByText("Learning Path");
-            expect(pathHeading).toBeInTheDocument();
+            expect(screen.queryByText("Learning Path")).toBeInTheDocument();
           },
           { timeout: 10000 },
         );
 
         await closeSkillModalIfOpen(user);
 
-        // Verify path nodes are displayed
-        const pathNodes = screen.getAllByRole("button");
-        const pathNodeButtons = pathNodes.filter((button) => {
-          const text = button.textContent || "";
-          return text.includes("Type:");
-        });
+        const pathNodeButtons = getPathNodeButtons();
 
-        // Should have at least 3 nodes (start, url, target)
         expect(pathNodeButtons.length).toBeGreaterThanOrEqual(3);
       } finally {
         server.events.removeAllListeners("request:start");
@@ -97,7 +101,6 @@ describe("Learning Path Display", () => {
 
       await user.click(generateButton);
 
-      // Wait for learning path heading
       await waitFor(
         () => {
           expect(screen.queryByText("Learning Path")).toBeInTheDocument();
@@ -107,21 +110,16 @@ describe("Learning Path Display", () => {
 
       await closeSkillModalIfOpen(user);
 
-      // Get all list items and find the ones with node data
-      const listItems = screen.getAllByRole("button");
-      const pathNodeButtons = listItems.filter((button) => {
-        const text = button.textContent || "";
-        return text.includes("Type:");
-      });
+      const pathNodeButtons = getPathNodeButtons();
 
-      // Verify the order - should have multiple nodes
       expect(pathNodeButtons.length).toBeGreaterThanOrEqual(3);
-
-      // First node should be "E"
       expect(pathNodeButtons[0]?.textContent).toContain("E");
+      expect(pathNodeButtons[0]).toHaveAttribute("data-current", "true");
+      expect(pathNodeButtons[0]).toHaveAttribute("data-dimmed", "false");
 
-      // Should have nodes in the path
-      expect(pathNodeButtons.length).toBeGreaterThan(0);
+      pathNodeButtons.slice(1).forEach((button) => {
+        expect(button).toHaveAttribute("data-dimmed", "true");
+      });
     },
   );
 
@@ -158,18 +156,11 @@ describe("Learning Path Display", () => {
 
       await closeSkillModalIfOpen(user);
 
-      // Get all list items and find the ones with node data
-      const listItems = screen.getAllByRole("button");
-      const pathNodeButtons = listItems.filter((button) => {
-        const text = button.textContent || "";
-        return text.includes("Type:");
-      });
+      const pathNodeButtons = getPathNodeButtons();
 
-      // Click the first path node
       if (pathNodeButtons[0]) {
         await user.click(pathNodeButtons[0]);
 
-        // Verify that console.log was called with the node data
         await waitFor(() => {
           expect(consoleSpy).toHaveBeenCalledWith(
             "Path node clicked:",
@@ -196,7 +187,6 @@ describe("Learning Path Display", () => {
 
       await performSearch(user, "javascript");
 
-      // Verify search results are showing
       await waitFor(() => {
         expect(screen.queryByText(/result/i)).toBeInTheDocument();
       });
@@ -212,7 +202,6 @@ describe("Learning Path Display", () => {
 
       await user.click(generateButton);
 
-      // Wait for learning path to appear
       await waitFor(
         () => {
           expect(screen.queryByText("Learning Path")).toBeInTheDocument();
@@ -220,7 +209,6 @@ describe("Learning Path Display", () => {
         { timeout: 10000 },
       );
 
-      // Verify the "results found" text is gone
       expect(screen.queryByText(/result.*found/i)).not.toBeInTheDocument();
     },
   );
@@ -246,7 +234,6 @@ describe("Learning Path Display", () => {
 
       await user.click(generateButton);
 
-      // Wait for path to render and styles to apply
       await waitFor(
         () => {
           expect(screen.queryByText("Learning Path")).toBeInTheDocument();
@@ -254,46 +241,34 @@ describe("Learning Path Display", () => {
         { timeout: 10000 },
       );
 
-      // Wait for graph to apply opacity styles
       await waitFor(
         () => {
-          // Validate node opacity: E (in path) should be fully visible
-          const circles = Array.from(document.querySelectorAll("circle"));
-          const eNode = circles.find(
-            (circle) =>
-              (circle as unknown as { __data__?: WBNode }).__data__?.name ===
-              "E",
+          const pathButtons = getPathNodeButtons();
+          const currentButton = pathButtons.find(
+            (button) => button.getAttribute("data-current") === "true",
           );
 
-          // E is the starting node in the path, should be fully visible
-          expect(eNode).toBeTruthy();
-          const eOpacity = eNode?.getAttribute("opacity");
-          expect(eOpacity).toBe("1");
+          expect(currentButton).toBeTruthy();
+          expect(currentButton).toHaveAttribute("data-dimmed", "false");
 
-          // Find all dimmed nodes (opacity 0.25 - these are nodes NOT in the path)
-          const dimmedNodes = circles.filter((circle) => {
-            const opacity = circle.getAttribute("opacity");
-            return opacity === "0.25";
-          });
-          // There should be at least one dimmed node (React, JavaScript, etc.)
-          expect(dimmedNodes.length).toBeGreaterThan(0);
+          const graphNodes = getGraphNodeSnapshots();
+          expect(graphNodes.some((node) => node.dimmed)).toBe(true);
 
-          // Validate link opacity: path links remain emphasized
-          // Find links with full opacity (in path) vs dimmed (not in path)
-          const lines = Array.from(document.querySelectorAll("line"));
-          const pathLinks = lines.filter((line) => {
-            const opacity = line.getAttribute("opacity");
-            return opacity === "1";
-          });
-          const dimmedLinks = lines.filter((line) => {
-            const opacity = line.getAttribute("opacity");
-            return opacity === "0.2";
-          });
+          expect(
+            pathButtons.some(
+              (button) => button.getAttribute("data-dimmed") === "true",
+            ),
+          ).toBe(true);
 
-          // Path should have at least one emphasized link
-          expect(pathLinks.length).toBeGreaterThan(0);
-          // And should have some dimmed links (non-path links)
-          expect(dimmedLinks.length).toBeGreaterThan(0);
+          const graphEdges = Array.from(
+            document.querySelectorAll('[data-testid="sigma-edges"] [data-edge-id]'),
+          );
+          expect(
+            graphEdges.some((edge) => edge.getAttribute("data-opacity") === "1"),
+          ).toBe(true);
+          expect(
+            graphEdges.some((edge) => edge.getAttribute("data-opacity") === "0.2"),
+          ).toBe(true);
         },
         { timeout: 5000 },
       );

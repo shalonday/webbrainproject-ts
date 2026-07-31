@@ -4,6 +4,7 @@ export interface WBNode {
   uuid: string;
   type: "skill" | "url";
   name: string;
+  embedding?: number[];
 }
 
 export interface Link {

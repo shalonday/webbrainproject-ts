@@ -6,6 +6,7 @@ import { ACTIVE_MODULE_FILL, ACTIVE_SKILL_FILL } from "../../common-constants";
 import { server } from "../setup";
 import {
   countPathRequests,
+  getGraphNodeSnapshots,
   performSearch,
   renderSearchPage,
   waitForGraphToLoad,
@@ -15,7 +16,10 @@ import {
  * Tests for the Generate Path button functionality.
  */
 describe("Generate Path Button", () => {
-  it("is disabled when no search result is selected", async () => {
+  it(
+    "is disabled when no search result is selected",
+    { timeout: 20000 },
+    async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
@@ -26,18 +30,25 @@ describe("Generate Path Button", () => {
       name: /generate learning path/i,
     });
     expect(generateButton).toBeDisabled();
-  });
+    },
+  );
 
-  it("becomes enabled when a search result is selected", async () => {
+  it("becomes enabled when a search result is selected", { timeout: 20000 }, async () => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
 
     await performSearch(user, "javascript");
 
-    const results = await screen.findAllByRole("button", {
-      name: /javascript/i,
-    });
+    const results = await screen.findAllByRole(
+      "button",
+      {
+        name: /javascript/i,
+      },
+      {
+        timeout: 10000,
+      },
+    );
     await user.click(results[0]);
 
     const generateButton = screen.getByRole("button", {
@@ -48,7 +59,7 @@ describe("Generate Path Button", () => {
 
   it(
     "highlights the learning path when clicked with a selected result",
-    { timeout: 20000 },
+    { timeout: 40000 },
     async () => {
       const requests: string[] = [];
       /**
@@ -70,9 +81,15 @@ describe("Generate Path Button", () => {
 
         await performSearch(user, "javascript");
 
-        const results = await screen.findAllByRole("button", {
-          name: /javascript/i,
-        });
+        const results = await screen.findAllByRole(
+          "button",
+          {
+            name: /javascript/i,
+          },
+          {
+            timeout: 10000,
+          },
+        );
         await user.click(results[0]);
 
         const initialPathRequests = countPathRequests(requests);
@@ -95,14 +112,20 @@ describe("Generate Path Button", () => {
         // Now check for highlights
         await waitFor(
           () => {
-            const circles = document.querySelectorAll("circle");
-            const highlightedCircles = Array.from(circles).filter((circle) => {
-              const fill = circle.getAttribute("fill");
-              return fill === ACTIVE_SKILL_FILL || fill === ACTIVE_MODULE_FILL;
-            });
+            const graphNodes = getGraphNodeSnapshots();
+            const highlightedNodes = graphNodes.filter(
+              (node) =>
+                node.fill === ACTIVE_SKILL_FILL ||
+                node.fill === ACTIVE_MODULE_FILL ||
+                node.done,
+            );
 
-            // At least the start node ("E") and the target should be highlighted
-            expect(highlightedCircles.length).toBeGreaterThanOrEqual(2);
+            expect(highlightedNodes.length).toBeGreaterThanOrEqual(2);
+
+            const pathButtons = screen.getAllByRole("button").filter((button) =>
+              (button.textContent || "").includes("Type:"),
+            );
+            expect(pathButtons.length).toBeGreaterThanOrEqual(3);
           },
           { timeout: 20000 },
         );

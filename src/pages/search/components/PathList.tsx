@@ -41,33 +41,46 @@ export function PathList({
         Learning Path
       </Typography>
       <List>
-        {pathNodes.map((node) => (
-          <ListItem key={node.uuid} disablePadding>
-            <ListItemButton
-              onClick={() => onPathNodeClick(node)}
-              sx={{
-                borderRadius: 2,
-                mb: 0.5,
-                backgroundColor:
-                  currentNodeId === node.uuid ? "primary.light" : "transparent",
-                "&:hover": {
-                  backgroundColor:
-                    currentNodeId === node.uuid
+        {pathNodes.map((node) => {
+          const isCurrent = currentNodeId === node.uuid;
+          const isDone = doneNodeIds.includes(node.uuid);
+          const statusLabels = [
+            isDone ? "Done" : null,
+            isCurrent ? "Current" : null,
+          ].filter(Boolean) as string[];
+
+          return (
+            <ListItem key={node.uuid} disablePadding>
+              <ListItemButton
+                aria-current={isCurrent ? "step" : undefined}
+                data-current={isCurrent ? "true" : "false"}
+                data-dimmed={isCurrent ? "false" : "true"}
+                data-done={isDone ? "true" : "false"}
+                data-node-id={node.uuid}
+                onClick={() => onPathNodeClick(node)}
+                sx={{
+                  borderRadius: 2,
+                  mb: 0.5,
+                  backgroundColor: isCurrent ? "primary.light" : "transparent",
+                  opacity: isCurrent ? 1 : isDone ? 0.8 : 0.6,
+                  "&:hover": {
+                    backgroundColor: isCurrent
                       ? "primary.light"
                       : "action.hover",
-                },
-              }}
-            >
-              <ListItemText
-                primary={node.name}
-                secondary={`Type: ${node.type}${doneNodeIds.includes(node.uuid) ? " • Done" : node.uuid === currentNodeId ? " • Current" : ""}`}
-                primaryTypographyProps={{
-                  fontWeight: 500,
+                  },
                 }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
+              >
+                <ListItemText
+                  primary={node.name}
+                  secondary={`Type: ${node.type}${statusLabels.length > 0 ? ` • ${statusLabels.join(" • ")}` : ""}`}
+                  primaryTypographyProps={{
+                    fontWeight: 500,
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
     </>
   );
