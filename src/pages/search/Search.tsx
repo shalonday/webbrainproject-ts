@@ -42,7 +42,6 @@ function Search(): ReactNode {
     doneNodeIds,
     doneNodeTimestamps,
     handleGeneratePath,
-    handleKeyDown,
     handleMoveForward,
     handleResultSelect,
     handleSearch,
@@ -195,11 +194,11 @@ function Search(): ReactNode {
         }
         isSearchActive={isSearchActive}
         onGeneratePath={handleGeneratePath}
-        onKeyDown={handleKeyDown}
         onMoveForward={handleMoveForward}
         onPathNodeClick={handlePathNodeClick}
         onResultSelect={handleResultSelect}
         onSearchChange={handleSearchChange}
+        onSearchSubmit={handleSearch}
         pathTree={pathTree}
         recommendedNodes={recommendedNodes}
         searchResults={searchResults}

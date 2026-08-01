@@ -12,7 +12,7 @@ export interface SkillTreesContextValue {
 }
 
 const SkillTreesContext = createContext<SkillTreesContextValue | undefined>(
-  undefined
+  undefined,
 );
 
 /**
@@ -83,7 +83,7 @@ function useSkillTreesContext(): SkillTreesContextValue {
   const context = useContext(SkillTreesContext);
   if (context === undefined) {
     throw new Error(
-      "SkillTreesContext is being used outside of SkillTreesContextProvider"
+      "SkillTreesContext is being used outside of SkillTreesContextProvider",
     );
   }
   return context;

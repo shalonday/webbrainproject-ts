@@ -9,6 +9,7 @@ import {
   RADIUS,
 } from "../../common-constants";
 import type { Link, Tree, WBNode } from "../../types/types";
+import type { GraphRendererProps } from "./graph-renderer-types";
 import {
   getLinkColor,
   getLinkOpacity,
@@ -61,20 +62,7 @@ function formatNodeTypeLabel(type: WBNode["type"]): string {
   return `${type.charAt(0).toUpperCase()}${type.slice(1)}`;
 }
 
-interface D3ChartProps {
-  currentNode?: WBNode | null;
-  doneLinkIds?: string[];
-  doneNodeIds?: string[];
-  doneNodeTimestamps?: Record<string, string>;
-  initialFocusNodeId?: string | null;
-  markedForStudyNodeIds?: string[];
-  onNodeClick?: (nodeId: string) => void;
-  onNodeTouchEnd?: (event: React.TouchEvent<SVGCircleElement>) => void;
-  onNodeTouchStart?: (event: React.TouchEvent<SVGCircleElement>) => void;
-  pathTree?: Tree | null;
-  selectedNodeIds?: string[];
-  tree: Tree;
-}
+type D3ChartProps = GraphRendererProps;
 
 type LinkSelection = d3.Selection<
   SVGLineElement,
