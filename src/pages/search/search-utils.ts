@@ -4,7 +4,7 @@ import type { Link, Tree, WBNode } from "../../types/types";
  * Hardcoded start node ID for path generation.
  * TODO: Make configurable via user settings or context.
  */
-export const DEFAULT_START_NODE_ID = "97838643-4e9b-434f-8985-89dd23408647";
+export const DEFAULT_START_NODE_ID = "20c37849-697e-4121-b048-f81a0c47aebd";
 
 /**
  * Checks if a node matches the search query.
@@ -432,6 +432,6 @@ export function resolveInitialFocusNodeId(
   if (nodeIds.has(DEFAULT_START_NODE_ID)) {
     return DEFAULT_START_NODE_ID;
   }
-  
+
   return tree.nodes[0].uuid;
 }

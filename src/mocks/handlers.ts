@@ -8,7 +8,7 @@ const mockTreeData: Tree = {
     // Path nodes from /paths response
     {
       name: "E",
-      uuid: "97838643-4e9b-434f-8985-89dd23408647",
+      uuid: "20c37849-697e-4121-b048-f81a0c47aebd",
       type: "skill",
     },
     {
@@ -172,7 +172,7 @@ const mockTreeData: Tree = {
     // Path links from /paths response
     {
       uuid: "d9ce722d-3ad3-487f-8ae0-469a2ddbd7be",
-      source: "97838643-4e9b-434f-8985-89dd23408647",
+      source: "20c37849-697e-4121-b048-f81a0c47aebd",
       target: "b503afe3-90d8-45ee-86f5-469cbe4dc929",
     },
     {
@@ -287,7 +287,7 @@ const mockTreeData: Tree = {
     },
     {
       uuid: "a85568e6-0e0f-4c13-8e8c-8fed001ddbfa",
-      source: "97838643-4e9b-434f-8985-89dd23408647",
+      source: "20c37849-697e-4121-b048-f81a0c47aebd",
       target: "7c81ca97-a289-4dcb-90c0-b10c187a79f6",
     },
     {
@@ -303,7 +303,7 @@ const mockTreeData: Tree = {
     // Filler links
     {
       uuid: "f1a2b3c4-d5e6-7890-1234-abcdef123456",
-      source: "97838643-4e9b-434f-8985-89dd23408647",
+      source: "20c37849-697e-4121-b048-f81a0c47aebd",
       target: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     },
     {
@@ -323,7 +323,7 @@ const mockTreeData: Tree = {
     },
     {
       uuid: "f5a6b7c8-d9e0-1234-5678-ef1234567890",
-      source: "97838643-4e9b-434f-8985-89dd23408647",
+      source: "20c37849-697e-4121-b048-f81a0c47aebd",
       target: "e5f6a7b8-c9d0-1234-ef12-345678901234",
     },
     {
@@ -411,7 +411,7 @@ export const handlers = [
       nodes: [
         {
           name: "E",
-          uuid: startId, //"97838643-4e9b-434f-8985-89dd23408647" in real data
+          uuid: startId, //"20c37849-697e-4121-b048-f81a0c47aebd" in real data
           type: "skill",
         },
         {
@@ -648,7 +648,7 @@ export const handlers = [
         },
         {
           uuid: "a85568e6-0e0f-4c13-8e8c-8fed001ddbfa",
-          source: "97838643-4e9b-434f-8985-89dd23408647",
+          source: "20c37849-697e-4121-b048-f81a0c47aebd",
           target: "7c81ca97-a289-4dcb-90c0-b10c187a79f6",
         },
         {

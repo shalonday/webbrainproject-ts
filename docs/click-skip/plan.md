@@ -5,8 +5,9 @@ TL;DR - Add double-click behavior on graph nodes: for `url` nodes open the URL; 
 ## Steps
 
 1. Design backend endpoint (perk-api)
-   - Add `GET /paths/shortest/:targetNodeId` that computes the shortest path from `E` to `:targetNodeId` using a parameterized Cypher `shortestPath(...)` query. Return `{ nodes: [...], links: [...] }` in the same shape as existing `/paths/:start/:target` responses.
-   - Implement `readShortestPath` in `services/service.js` using `session.executeRead()` or `session.readTransaction()` and parameterized query; handle no-path case (return empty nodes/links, 404 optional).
+   - Add `GET /shortestPath/:startNodeId/:targetNodeId` that computes the shortest path from `:startNodeId` (optional; default `E`) to `:targetNodeId` using a parameterized Cypher `shortestPath(...)` query. Return `{ nodes: [...], links: [...] }` in the same shape as existing `/paths/:start/:target` responses.
+   - Note: the implementation should accept `startNodeId` as an optional parameter and default to the `DEFAULT_START_NODE_ID` constant when absent (this constant corresponds to the entry node named `"E"` and has UUID `20c37849-697e-4121-b048-f81a0c47aebd`), to preserve existing behavior while allowing future flexibility.
+   - Implement `readShortestPath` in `services/service.js` using `session.executeRead()` or `session.readTransaction()` and a parameterized query; accept `startNodeId` from `req.params` and default to `E` when missing; handle no-path case (return 404).
    - Wire route in `app.js`.
    - Add unit tests for the endpoint (mock Neo4j driver) and basic error handling.
 
