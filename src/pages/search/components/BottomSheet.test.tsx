@@ -18,6 +18,7 @@ const defaultProps = {
   onPathNodeClick: vi.fn(),
   onResultSelect: vi.fn(),
   onSearchChange: vi.fn(),
+  onSearchSubmit: vi.fn(),
   pathTree: null,
   recommendedNodes: [],
   searchResults: [],
