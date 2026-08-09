@@ -73,4 +73,15 @@ describe("SigmaChart", () => {
 
     expect(onNodeClick).toHaveBeenCalledWith("skill-1");
   });
+
+  it("maps Sigma double-click events to the node double-click callback", () => {
+    const onNodeDoubleClick = vi.fn();
+
+    render(<SigmaChart onNodeDoubleClick={onNodeDoubleClick} tree={TREE} />);
+
+    expect(sigmaInstances).toHaveLength(1);
+    sigmaInstances[0].handlers.doubleClickNode({ node: "url-1" });
+
+    expect(onNodeDoubleClick).toHaveBeenCalledWith("url-1");
+  });
 });

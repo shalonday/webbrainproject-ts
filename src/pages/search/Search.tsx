@@ -11,7 +11,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { createPerkAPIClient } from "../../api/perkClient";
@@ -103,6 +103,40 @@ function Search(): ReactNode {
   };
 
   /**
+   * Routes Sigma double-click interactions based on node type.
+   * URL nodes open the URL, while skill nodes open the skill route and show the confirmation modal.
+   *
+   * @param nodeId - The UUID of the clicked node.
+   */
+  const handleNodeDoubleClick = useCallback(
+    (nodeId: string) => {
+      const clickedNode = universalTree?.nodes.find(
+        (node) => node.uuid === nodeId,
+      );
+
+      if (!clickedNode) {
+        return;
+      }
+
+      if (clickedNode.type === "url") {
+        window.open(clickedNode.name, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      if (clickedNode.type === "skill") {
+        window.open(
+          `/skill-test/${clickedNode.uuid}`,
+          "_blank",
+          "noopener,noreferrer",
+        );
+        setIsSkillModalOpen(true);
+        setIsSkillConfirmed(false);
+      }
+    },
+    [universalTree, setIsSkillModalOpen, setIsSkillConfirmed],
+  );
+
+  /**
    * Handles search term changes.
    * Clears search when term is empty.
    *
@@ -176,6 +210,7 @@ function Search(): ReactNode {
           doneNodeTimestamps={doneNodeTimestamps}
           highlightedNodeIds={highlightedNodeIds}
           markedForStudyNodeIds={markedForStudyNodeIds}
+          onNodeDoubleClick={handleNodeDoubleClick}
           pathTree={pathTree}
           universalTree={universalTree}
         />

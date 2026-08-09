@@ -26,6 +26,7 @@ function SearchPageChart({
   doneLinkIds = [],
   doneNodeTimestamps = {},
   markedForStudyNodeIds = [],
+  onNodeDoubleClick,
   onNodeTouchStart,
   onNodeTouchEnd,
 }: SearchPageChartProps) {
@@ -71,6 +72,7 @@ function SearchPageChart({
         initialFocusNodeId={initialFocusNodeId}
         markedForStudyNodeIds={markedForStudyNodeIds}
         onNodeClick={handleNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onNodeTouchEnd={onNodeTouchEnd}
         onNodeTouchStart={onNodeTouchStart}
         pathTree={pathTree}

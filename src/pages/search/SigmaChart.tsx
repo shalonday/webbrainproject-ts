@@ -48,6 +48,7 @@ function formatNodeTypeLabel(type: WBNode["type"]): string {
 function SigmaChart({
   tree,
   onNodeClick = () => {},
+  onNodeDoubleClick = () => {},
   pathTree = null,
   selectedNodeIds = [],
   currentNode = null,
@@ -95,6 +96,10 @@ function SigmaChart({
       onNodeClick(node);
     });
 
+    renderer.on("doubleClickNode", ({ node }: { node: string }) => {
+      onNodeDoubleClick(node);
+    });
+
     if (initialFocusNodeId && sigmaGraph.hasNode(initialFocusNodeId)) {
       const newCameraState = getCameraStateToFitViewportToNodes(
         renderer as unknown as Sigma<Attributes, Attributes, Attributes>,
@@ -106,7 +111,7 @@ function SigmaChart({
     return () => {
       renderer.kill();
     };
-  }, [initialFocusNodeId, onNodeClick, sigmaGraph]);
+  }, [initialFocusNodeId, onNodeClick, onNodeDoubleClick, sigmaGraph]);
 
   return (
     <div

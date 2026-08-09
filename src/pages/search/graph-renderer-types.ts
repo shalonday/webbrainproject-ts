@@ -14,6 +14,7 @@ export interface GraphRendererProps {
   initialFocusNodeId?: string | null;
   markedForStudyNodeIds?: string[];
   onNodeClick?: (nodeId: string) => void;
+  onNodeDoubleClick?: (nodeId: string) => void;
   onNodeTouchEnd?: (event: React.TouchEvent<SVGCircleElement>) => void;
   onNodeTouchStart?: (event: React.TouchEvent<SVGCircleElement>) => void;
   pathTree?: Tree | null;
@@ -31,6 +32,7 @@ export interface SearchPageChartProps {
   doneNodeTimestamps?: Record<string, string>;
   highlightedNodeIds?: string[];
   markedForStudyNodeIds?: string[];
+  onNodeDoubleClick?: (nodeId: string) => void;
   onNodeTouchEnd?: (event: React.TouchEvent<SVGCircleElement>) => void;
   onNodeTouchStart?: (event: React.TouchEvent<SVGCircleElement>) => void;
   pathTree?: Tree | null;
