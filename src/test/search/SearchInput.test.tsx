@@ -1,7 +1,8 @@
 import { screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import * as perkClientModule from "../../api/perkClient";
 import { server } from "../setup";
 import {
   countTreeRequests,
@@ -10,6 +11,12 @@ import {
   renderSearchPage,
   waitForGraphToLoad,
 } from "./searchTestUtils";
+
+const analyzeUrlMock = vi.fn().mockResolvedValue({
+  url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+  prerequisites: [],
+  objectives: [],
+});
 
 /**
  * Tests for the Search input box functionality.
@@ -96,6 +103,76 @@ describe("Search input box", () => {
       screen.getByText("Enter a valid http or https URL."),
     ).toBeInTheDocument();
     expect(submitButton).toBeDisabled();
+  });
+
+  it(
+    "submits a valid URL to the ingestion endpoint when confirmed",
+    { timeout: 20000 },
+    async () => {
+      analyzeUrlMock.mockClear();
+      vi.spyOn(perkClientModule, "createPerkAPIClient").mockReturnValue({
+        analyzeUrl: analyzeUrlMock,
+      } as never);
+
+      renderSearchPage();
+      const user = userEvent.setup();
+      await waitForGraphToLoad();
+
+      const searchInput = getSearchInput();
+      await user.click(searchInput);
+      await user.keyboard(
+        "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+      );
+      await user.click(screen.getByRole("button", { name: /add url/i }));
+
+      const dialog = await screen.findByRole("dialog", { name: /add url/i });
+      const submitButton = within(dialog).getByRole("button", {
+        name: /^add url$/i,
+      });
+
+      await user.click(submitButton);
+
+      expect(analyzeUrlMock).toHaveBeenCalledWith(
+        "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+      );
+      expect(
+        screen.queryByRole("dialog", { name: /add url/i }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("shows the backend error message when URL submission fails", async () => {
+    const failedAnalyzeUrlMock = vi.fn().mockRejectedValue({
+      response: {
+        data: {
+          error: "URL domain is not allowed for ingestion.",
+        },
+      },
+    });
+
+    vi.spyOn(perkClientModule, "createPerkAPIClient").mockReturnValue({
+      analyzeUrl: failedAnalyzeUrlMock,
+    } as never);
+
+    renderSearchPage();
+    const user = userEvent.setup();
+    await waitForGraphToLoad();
+
+    const searchInput = getSearchInput();
+    await user.click(searchInput);
+    await user.keyboard("https://example.com/learn");
+    await user.click(screen.getByRole("button", { name: /add url/i }));
+
+    const dialog = await screen.findByRole("dialog", { name: /add url/i });
+    const submitButton = within(dialog).getByRole("button", {
+      name: /^add url$/i,
+    });
+
+    await user.click(submitButton);
+
+    expect(
+      await screen.findByText("URL domain is not allowed for ingestion."),
+    ).toBeInTheDocument();
   });
 
   it("when focused, pressing Enter filters locally without refetching", async () => {

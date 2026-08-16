@@ -2,7 +2,12 @@ import type { AxiosInstance } from "axios";
 import axios from "axios";
 
 import { BASE_URL } from "../common-constants";
-import type { ChatRequest, ChatResponse, SearchResult } from "../types/types";
+import type {
+  AnalyzeResponse,
+  ChatRequest,
+  ChatResponse,
+  SearchResult,
+} from "../types/types";
 /**
  * API client for Perk API integration
  */
@@ -50,6 +55,19 @@ export class PerkAPIClient {
       return response.data.results;
     } catch (error) {
       console.error("Search error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submits a URL for content ingestion analysis.
+   */
+  async analyzeUrl(url: string): Promise<AnalyzeResponse> {
+    try {
+      const response = await this.client.post("/ingest/analyze", { url });
+      return response.data as AnalyzeResponse;
+    } catch (error) {
+      console.error("Ingestion analysis error:", error);
       throw error;
     }
   }

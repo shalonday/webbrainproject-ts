@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 interface ContentIngestionDialogProps {
   initialUrl?: string;
   onClose: () => void;
+  onSubmit?: (url: string) => Promise<void> | void;
   open: boolean;
 }
 
@@ -47,9 +48,12 @@ const isValidHttpUrl = (value: string): boolean => {
 export function ContentIngestionDialog({
   initialUrl = "",
   onClose,
+  onSubmit,
   open,
 }: ContentIngestionDialogProps) {
   const [inputValue, setInputValue] = useState(initialUrl);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const isValidUrl = useMemo(() => isValidHttpUrl(inputValue), [inputValue]);
 
@@ -58,6 +62,8 @@ export function ContentIngestionDialog({
    */
   const resetInputValue = () => {
     setInputValue(initialUrl);
+    setSubmitError("");
+    setIsSubmitting(false);
   };
 
   /**
@@ -71,13 +77,36 @@ export function ContentIngestionDialog({
   /**
    * Submits a valid URL once the user confirms the ingestion action.
    */
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isValidUrl) {
       return;
     }
 
-    resetInputValue();
-    onClose();
+    const trimmedUrl = inputValue.trim();
+
+    try {
+      setIsSubmitting(true);
+      setSubmitError("");
+      await onSubmit?.(trimmedUrl);
+
+      resetInputValue();
+      onClose();
+    } catch (error) {
+      const backendError =
+        error && typeof error === "object" && "response" in error
+          ? (error as { response?: { data?: { error?: string } } }).response
+              ?.data?.error
+          : undefined;
+
+      setSubmitError(
+        backendError ||
+          (error instanceof Error
+            ? error.message
+            : "Unable to submit this URL right now."),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -91,13 +120,18 @@ export function ContentIngestionDialog({
           fullWidth
           label="URL"
           value={inputValue}
-          onChange={(event) => setInputValue(event.target.value)}
+          onChange={(event) => {
+            setInputValue(event.target.value);
+            setSubmitError("");
+          }}
           placeholder="https://example.com"
-          error={Boolean(inputValue) && !isValidUrl}
+          error={Boolean(inputValue) && (!isValidUrl || Boolean(submitError))}
           helperText={
-            Boolean(inputValue) && !isValidUrl
-              ? "Enter a valid http or https URL."
-              : "Add a URL to submit it for content ingestion."
+            submitError
+              ? submitError
+              : Boolean(inputValue) && !isValidUrl
+                ? "Enter a valid http or https URL."
+                : "Add a URL to submit it for content ingestion."
           }
         />
       </DialogContent>
@@ -105,10 +139,10 @@ export function ContentIngestionDialog({
         <Button onClick={handleClose}>Cancel</Button>
         <Button
           variant="contained"
-          disabled={!isValidUrl}
+          disabled={!isValidUrl || isSubmitting}
           onClick={handleSubmit}
         >
-          Add URL
+          {isSubmitting ? "Adding..." : "Add URL"}
         </Button>
       </DialogActions>
     </Dialog>

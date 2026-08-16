@@ -4,6 +4,7 @@ import { Box, IconButton, InputAdornment, TextField } from "@mui/material";
 import type { KeyboardEvent } from "react";
 import { useMemo, useState } from "react";
 
+import { createPerkAPIClient } from "../../../api/perkClient";
 import { ContentIngestionDialog } from "./ContentIngestionDialog";
 
 interface SearchInputProps {
@@ -46,8 +47,16 @@ export function SearchInput({
   onSearchSubmit,
 }: SearchInputProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const apiClient = useMemo(() => createPerkAPIClient(), []);
   const isSearchActive = useMemo(() => value.trim().length > 0, [value]);
   const hasPrefilledUrl = useMemo(() => looksLikeUrl(value), [value]);
+
+  /**
+   *
+   */
+  const handleUrlSubmit = async (url: string) => {
+    await apiClient.analyzeUrl(url);
+  };
 
   return (
     <>
@@ -104,8 +113,9 @@ export function SearchInput({
       <ContentIngestionDialog
         key={isDialogOpen ? "ingestion-dialog-open" : "ingestion-dialog-closed"}
         initialUrl={hasPrefilledUrl ? value : ""}
-        open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
+        onSubmit={handleUrlSubmit}
+        open={isDialogOpen}
       />
     </>
   );
