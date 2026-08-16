@@ -78,7 +78,11 @@ describe("Search input box", () => {
     );
   });
 
-  it("rejects empty or malformed URLs in the ingestion dialog", async () => {
+  it.each([
+    "not-a-valid-url",
+    "https://",
+    "https://example.com:abc",
+  ])("rejects malformed URL: %s in the ingestion dialog", async (invalidUrl) => {
     renderSearchPage();
     const user = userEvent.setup();
     await waitForGraphToLoad();
@@ -96,14 +100,46 @@ describe("Search input box", () => {
     });
 
     await user.clear(urlField);
-    await user.type(urlField, "not-a-valid-url");
+    await user.type(urlField, invalidUrl);
 
-    expect(urlField).toHaveValue("not-a-valid-url");
-    expect(
-      screen.getByText("Enter a valid http or https URL."),
-    ).toBeInTheDocument();
+    expect(urlField).toHaveValue(invalidUrl);
+    expect(screen.getByText("Enter a valid HTTPS URL.")).toBeInTheDocument();
     expect(submitButton).toBeDisabled();
   });
+
+  it.each([
+    "javascript:alert(1)",
+    "ftp://files.example.com/report.pdf",
+    "mailto:user@example.com",
+    "http://example.com",
+    "http://www.example.com/path",
+  ])(
+    "rejects URL with unsupported protocol: %s in the ingestion dialog",
+    async (invalidUrl) => {
+      renderSearchPage();
+      const user = userEvent.setup();
+      await waitForGraphToLoad();
+
+      const searchInput = getSearchInput();
+      await user.click(searchInput);
+      await user.keyboard("https://example.com/learn");
+
+      await user.click(screen.getByRole("button", { name: /add url/i }));
+
+      const dialog = await screen.findByRole("dialog", { name: /add url/i });
+      const urlField = screen.getByLabelText(/^URL$/i);
+      const submitButton = within(dialog).getByRole("button", {
+        name: /^add url$/i,
+      });
+
+      await user.clear(urlField);
+      await user.type(urlField, invalidUrl);
+
+      expect(urlField).toHaveValue(invalidUrl);
+      expect(screen.getByText("Enter a valid HTTPS URL.")).toBeInTheDocument();
+      expect(submitButton).toBeDisabled();
+    },
+  );
 
   it(
     "submits a valid URL to the ingestion endpoint when confirmed",

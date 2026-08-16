@@ -16,12 +16,12 @@ interface ContentIngestionDialogProps {
 }
 
 /**
- * Validates whether the supplied string is a valid http or https URL.
+ * Validates whether the supplied string is a valid HTTPS URL.
  *
  * @param value - Candidate URL string to validate.
- * @returns True when the value is a valid absolute http or https URL.
+ * @returns True when the value is a valid absolute HTTPS URL.
  */
-const isValidHttpUrl = (value: string): boolean => {
+const isValidHttpsUrl = (value: string): boolean => {
   const trimmedValue = value.trim();
 
   if (!trimmedValue) {
@@ -30,7 +30,10 @@ const isValidHttpUrl = (value: string): boolean => {
 
   try {
     const parsedUrl = new URL(trimmedValue);
-    return parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
+    const hasAllowedProtocol = parsedUrl.protocol === "https:";
+    const hasHostname = Boolean(parsedUrl.hostname);
+
+    return hasAllowedProtocol && hasHostname;
   } catch {
     return false;
   }
@@ -55,7 +58,7 @@ export function ContentIngestionDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  const isValidUrl = useMemo(() => isValidHttpUrl(inputValue), [inputValue]);
+  const isValidUrl = useMemo(() => isValidHttpsUrl(inputValue), [inputValue]);
 
   /**
    * Resets the field to the value supplied whenever the dialog is opened.
@@ -130,7 +133,7 @@ export function ContentIngestionDialog({
             submitError
               ? submitError
               : Boolean(inputValue) && !isValidUrl
-                ? "Enter a valid http or https URL."
+                ? "Enter a valid HTTPS URL."
                 : "Add a URL to submit it for content ingestion."
           }
         />
