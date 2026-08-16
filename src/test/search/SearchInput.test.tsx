@@ -1,3 +1,4 @@
+import { screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -18,23 +19,23 @@ describe("Search input box", () => {
     "is focused when tab is pressed four times (skips FABs)",
     { timeout: 20000 },
     async () => {
-    renderSearchPage();
-    const user = userEvent.setup();
-    await waitForGraphToLoad();
+      renderSearchPage();
+      const user = userEvent.setup();
+      await waitForGraphToLoad();
 
-    const searchInput = getSearchInput();
-    expect(searchInput).toBeInTheDocument();
+      const searchInput = getSearchInput();
+      expect(searchInput).toBeInTheDocument();
 
-    expect(document.body).toHaveFocus();
-    // First tab focuses the chatbot FAB
-    await user.tab();
-    // Second tab focuses the export progress FAB
-    await user.tab();
-    // Third tab focuses the import progress FAB
-    await user.tab();
-    // Fourth tab focuses the search input
-    await user.tab();
-    expect(searchInput).toHaveFocus();
+      expect(document.body).toHaveFocus();
+      // First tab focuses the chatbot FAB
+      await user.tab();
+      // Second tab focuses the export progress FAB
+      await user.tab();
+      // Third tab focuses the import progress FAB
+      await user.tab();
+      // Fourth tab focuses the search input
+      await user.tab();
+      expect(searchInput).toHaveFocus();
     },
   );
 
@@ -47,6 +48,27 @@ describe("Search input box", () => {
     expect(searchInput).toBeInTheDocument();
     await user.click(searchInput);
     expect(searchInput).toHaveFocus();
+  });
+
+  it("shows an add URL action and opens a prefilled dialog for URL-like text", async () => {
+    renderSearchPage();
+    const user = userEvent.setup();
+    await waitForGraphToLoad();
+
+    const searchInput = getSearchInput();
+    await user.click(searchInput);
+    await user.keyboard("https://example.com/learn");
+
+    const addUrlButton = screen.getByRole("button", { name: /add url/i });
+    expect(addUrlButton).toBeInTheDocument();
+
+    await user.click(addUrlButton);
+
+    const dialog = await screen.findByRole("dialog", { name: /add url/i });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByLabelText(/^URL$/i)).toHaveValue(
+      "https://example.com/learn",
+    );
   });
 
   it("when focused, pressing Enter filters locally without refetching", async () => {

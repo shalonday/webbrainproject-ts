@@ -34,7 +34,8 @@ Create a URL submission UI and a backend validation gate that only allows approv
 
 ### Sub-phases
 
-1. Add a UI entry point on the Search page by placing a dedicated URL-ingestion action directly in the search field (Option B): add a small "Add URL"/link icon to the `SearchInput` endAdornment that opens a `ContentIngestionDialog`. The button should be visible while the user is searching and should open with the current typed value prefilled when it looks like a URL. Keep the top-right FAB stack unchanged for existing actions; this modal entry point lives in the search control itself.
+1. Add a UI entry point on the Search page by placing a dedicated URL-ingestion action directly in the search field: add a small "Add URL"/link icon to the `SearchInput` endAdornment that opens a `ContentIngestionDialog`. The button should be visible while the user is searching and should open with the current typed value prefilled when it looks like a URL.
+
 2. Add client-side URL validation with a clear error message.
 3. Add a backend site whitelist config.
 4. Reject URLs that are not on the whitelist before scraping starts.
