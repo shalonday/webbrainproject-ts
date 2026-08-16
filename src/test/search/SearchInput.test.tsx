@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -69,6 +69,33 @@ describe("Search input box", () => {
     expect(screen.getByLabelText(/^URL$/i)).toHaveValue(
       "https://example.com/learn",
     );
+  });
+
+  it("rejects empty or malformed URLs in the ingestion dialog", async () => {
+    renderSearchPage();
+    const user = userEvent.setup();
+    await waitForGraphToLoad();
+
+    const searchInput = getSearchInput();
+    await user.click(searchInput);
+    await user.keyboard("https://example.com/learn");
+
+    await user.click(screen.getByRole("button", { name: /add url/i }));
+
+    const dialog = await screen.findByRole("dialog", { name: /add url/i });
+    const urlField = screen.getByLabelText(/^URL$/i);
+    const submitButton = within(dialog).getByRole("button", {
+      name: /^add url$/i,
+    });
+
+    await user.clear(urlField);
+    await user.type(urlField, "not-a-valid-url");
+
+    expect(urlField).toHaveValue("not-a-valid-url");
+    expect(
+      screen.getByText("Enter a valid http or https URL."),
+    ).toBeInTheDocument();
+    expect(submitButton).toBeDisabled();
   });
 
   it("when focused, pressing Enter filters locally without refetching", async () => {
