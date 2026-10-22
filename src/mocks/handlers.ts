@@ -411,6 +411,17 @@ const chatbotHandlers = (baseUrl: string) => [
 ];
 
 export const handlers = [
+  http.post(`${BASE_URL}/ingest/analyze`, async ({ request }) => {
+    const body = (await request.json()) as {
+      url: string;
+    };
+
+    return HttpResponse.json({
+      url: body.url,
+      prerequisites: [],
+      objectives: [],
+    });
+  }),
   http.get(`${BASE_URL}/tree`, () => {
     return HttpResponse.json(mockTreeData);
   }),
