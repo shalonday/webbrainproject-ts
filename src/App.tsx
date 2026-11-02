@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { SkillTreesContextProvider } from "./contexts/SkillTreesContext";
+import Edit from "./pages/edit/Edit";
 import Search from "./pages/search/Search";
 import { SkillTestRoute } from "./pages/skill-test/SkillTestRoute";
 
@@ -19,6 +20,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Search />} />
+            <Route path="/edit" element={<Edit />} />
             <Route path="/paths/:startId/:endId" element={<Search />} />
             <Route path="/skill-test/:nodeId" element={<SkillTestRoute />} />
           </Routes>
