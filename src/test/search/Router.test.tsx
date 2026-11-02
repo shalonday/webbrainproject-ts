@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 
 import { SkillTreesContextProvider } from "../../contexts/SkillTreesContext";
+import Edit from "../../pages/edit/Edit";
 import Search from "../../pages/search/Search";
 import { getSkillTestConfig } from "../../pages/skill-test/registry";
 import { SkillTestRoute } from "../../pages/skill-test/SkillTestRoute";
@@ -29,6 +30,7 @@ function renderSearchPageWithRouter(initialEntries: string[] = ["/"]): void {
         <MemoryRouter initialEntries={initialEntries}>
           <Routes>
             <Route path="/" element={<Search />} />
+            <Route path="/edit" element={<Edit />} />
             <Route path="/paths/:startId/:endId" element={<Search />} />
             <Route path="/skill-test/:nodeId" element={<SkillTestRoute />} />
           </Routes>
@@ -70,6 +72,12 @@ describe("React Router integration", () => {
       /search for a skill or url/i,
     );
     expect(searchInput).toBeInTheDocument();
+  });
+
+  it("renders Edit page at /edit route", () => {
+    renderSearchPageWithRouter(["/edit"]);
+
+    expect(screen.getByText("Edit")).toBeInTheDocument();
   });
 
   it("auto-generates path when URL contains endId param", async () => {
