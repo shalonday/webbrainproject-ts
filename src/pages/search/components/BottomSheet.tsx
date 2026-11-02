@@ -28,6 +28,7 @@ interface BottomSheetProps {
   doneNodeIds: string[];
   isMoveForwardEnabled: boolean;
   isSearchActive: boolean;
+  onAnalyzeUrl: (url: string) => Promise<void>;
   onGeneratePath: () => void;
   onMoveForward: () => void;
   onPathNodeClick: (node: WBNode) => void;
@@ -50,6 +51,7 @@ interface BottomSheetProps {
  * @param props.doneNodeIds - Array of completed node IDs.
  * @param props.isMoveForwardEnabled - Whether the Move Forward action is enabled.
  * @param props.isSearchActive - Whether a search is currently active.
+ * @param props.onAnalyzeUrl - Callback to analyze a URL submitted for ingestion.
  * @param props.onGeneratePath - Callback to generate a learning path.
  * @param props.onMoveForward - Callback to move forward in the path.
  * @param props.onPathNodeClick - Callback when a path node is clicked.
@@ -68,6 +70,7 @@ export function BottomSheet({
   doneNodeIds,
   isMoveForwardEnabled,
   isSearchActive,
+  onAnalyzeUrl,
   onGeneratePath,
   onMoveForward,
   onPathNodeClick,
@@ -250,6 +253,7 @@ export function BottomSheet({
 
       <SearchInput
         value={searchTerm}
+        onAnalyzeUrl={onAnalyzeUrl}
         onSearchChange={onSearchChange}
         onSearchSubmit={onSearchSubmit}
       />

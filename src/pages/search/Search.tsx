@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { createPerkAPIClient } from "../../api/perkClient";
 import type { WBNode } from "../../types/types";
@@ -33,6 +33,7 @@ import { useSearchPageState } from "./useSearchPageState";
  */
 function Search(): ReactNode {
   const { endId } = useParams<{ startId?: string; endId?: string }>();
+  const navigate = useNavigate();
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const apiClient = useMemo(() => createPerkAPIClient(), []);
   const {
@@ -63,6 +64,19 @@ function Search(): ReactNode {
     setSearchTerm,
     universalTree,
   } = useSearchPageState();
+
+  /**
+   * Analyzes a URL and opens the edit page when both candidate groups exist.
+   *
+   * @param url - The URL to analyze for ingestion.
+   */
+  const handleAnalyzeUrl = async (url: string): Promise<void> => {
+    const response = await apiClient.analyzeUrl(url);
+
+    if (response.prerequisites.length > 0 && response.objectives.length > 0) {
+      navigate("/edit", { state: { analyzeResponse: response } });
+    }
+  };
 
   // Auto-generate path from URL params
   useEffect(() => {
@@ -193,6 +207,7 @@ function Search(): ReactNode {
             : isMoveForwardEnabled()
         }
         isSearchActive={isSearchActive}
+        onAnalyzeUrl={handleAnalyzeUrl}
         onGeneratePath={handleGeneratePath}
         onMoveForward={handleMoveForward}
         onPathNodeClick={handlePathNodeClick}
