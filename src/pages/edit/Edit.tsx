@@ -1,8 +1,9 @@
-import { Box, List, ListItem, ListItemText, Typography } from "@mui/material";
-import type { ReactNode } from "react";
+import { Box, Button, Dialog, DialogTitle } from "@mui/material";
+import { type ReactNode, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
 import type { AnalyzeResponse } from "../../types/types";
+import EditSigmaGraph from "./EditSigmaGraph";
 
 /**
  * Checks whether a value has the response shape returned by the analyze endpoint.
@@ -29,7 +30,9 @@ function isAnalyzeResponse(value: unknown): value is AnalyzeResponse {
     ) &&
     "objectives" in value &&
     Array.isArray(value.objectives) &&
-    value.objectives.every((objective: unknown) => typeof objective === "string")
+    value.objectives.every(
+      (objective: unknown) => typeof objective === "string",
+    )
   );
 }
 
@@ -52,6 +55,23 @@ function getAnalyzeResponse(state: unknown): AnalyzeResponse | undefined {
   return state.analyzeResponse;
 }
 
+export interface EditNodeDialogProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+/**
+ *
+ */
+function EditNodeDialog(props: EditNodeDialogProps) {
+  const { open, onClose } = props;
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>EditNodeDialog</DialogTitle>
+    </Dialog>
+  );
+}
+
 /**
  * Displays prerequisite and objective strings from a URL analysis.
  *
@@ -61,35 +81,33 @@ function Edit(): ReactNode {
   const { state } = useLocation();
   const analyzeResponse = getAnalyzeResponse(state);
 
+  // TEMP vals for testing
+  // const analyzeResponse: AnalyzeResponse = {
+  //   url: "https://example.com/lesson",
+  //   title: "Example lesson",
+  //   content: "Lesson content",
+  //   prerequisites: ["Basic arithmetic"],
+  //   objectives: ["Solve equations"],
+  // };
+
+  const [open, setOpen] = useState(false);
+
   if (!analyzeResponse) {
     return <Navigate to="/" replace />;
   }
 
   return (
     <Box component="main" sx={{ p: 3 }}>
-      <Typography component="h1" variant="h4">
-        Edit content
-      </Typography>
-      <Typography component="h2" variant="h6" sx={{ mt: 3 }}>
-        Prerequisites
-      </Typography>
-      <List dense>
-        {analyzeResponse.prerequisites.map((prerequisite, index) => (
-          <ListItem key={`${prerequisite}-${index}`}>
-            <ListItemText primary={prerequisite} />
-          </ListItem>
-        ))}
-      </List>
-      <Typography component="h2" variant="h6" sx={{ mt: 2 }}>
-        Objectives
-      </Typography>
-      <List dense>
-        {analyzeResponse.objectives.map((objective, index) => (
-          <ListItem key={`${objective}-${index}`}>
-            <ListItemText primary={objective} />
-          </ListItem>
-        ))}
-      </List>
+      <Box component="div" sx={{ p: 3, border: "1px dashed grey" }}>
+        Instructions: Lorem ipsum dolor sit amet consectetur adipisicing elit.
+        Eos debitis incidunt quam quidem. Atque minima adipisci voluptatum!
+        Facere deleniti dicta veniam nemo, consectetur, laborum iste commodi eum
+        fugiat quod autem.
+      </Box>
+      <EditSigmaGraph />
+      <EditNodeDialog open={open} onClose={() => setOpen(false)} />
+      <Button variant="outlined">Cancel</Button>
+      <Button variant="contained">Submit</Button>
     </Box>
   );
 }
