@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import * as perkClientModule from "../../api/perkClient";
+import type { AnalyzeResponse } from "../../types/types";
 import { server } from "../setup";
 import {
   countTreeRequests,
@@ -14,9 +15,19 @@ import {
 
 const analyzeUrlMock = vi.fn().mockResolvedValue({
   url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+  title: "JavaScript Guide",
+  content: "JavaScript guide content",
   prerequisites: [],
   objectives: [],
 });
+
+const viableAnalyzeResponse: AnalyzeResponse = {
+  url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+  title: "JavaScript Guide",
+  content: "JavaScript guide content",
+  prerequisites: ["Variables"],
+  objectives: ["Functions"],
+};
 
 /**
  * Tests for the Search input box functionality.
@@ -174,6 +185,37 @@ describe("Search input box", () => {
       expect(
         screen.queryByRole("dialog", { name: /add url/i }),
       ).not.toBeInTheDocument();
+    },
+  );
+
+  it(
+    "navigates to Edit and displays strings when both candidate groups are non-empty",
+    { timeout: 20000 },
+    async () => {
+      analyzeUrlMock.mockResolvedValueOnce(viableAnalyzeResponse);
+      vi.spyOn(perkClientModule, "createPerkAPIClient").mockReturnValue({
+        analyzeUrl: analyzeUrlMock,
+      } as never);
+
+      renderSearchPage();
+      const user = userEvent.setup();
+      await waitForGraphToLoad();
+
+      const searchInput = getSearchInput();
+      await user.click(searchInput);
+      await user.keyboard(viableAnalyzeResponse.url);
+      await user.click(screen.getByRole("button", { name: /add url/i }));
+
+      const dialog = await screen.findByRole("dialog", { name: /add url/i });
+      await user.click(
+        within(dialog).getByRole("button", { name: /^add url$/i }),
+      );
+
+      expect(
+        await screen.findByRole("heading", { name: "Prerequisites" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Variables")).toBeInTheDocument();
+      expect(screen.getByText("Functions")).toBeInTheDocument();
     },
   );
 

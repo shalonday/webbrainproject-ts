@@ -8,6 +8,7 @@ import Edit from "../../pages/edit/Edit";
 import Search from "../../pages/search/Search";
 import { getSkillTestConfig } from "../../pages/skill-test/registry";
 import { SkillTestRoute } from "../../pages/skill-test/SkillTestRoute";
+import type { AnalyzeResponse } from "../../types/types";
 import { server } from "../setup";
 
 /**
@@ -15,7 +16,10 @@ import { server } from "../setup";
  *
  * @param initialEntries - The initial route path(s).
  */
-function renderSearchPageWithRouter(initialEntries: string[] = ["/"]): void {
+function renderSearchPageWithRouter(
+  initialEntries: string[] = ["/"],
+  analyzeResponse?: AnalyzeResponse,
+): void {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -23,11 +27,20 @@ function renderSearchPageWithRouter(initialEntries: string[] = ["/"]): void {
       },
     },
   });
+  const routerEntries =
+    analyzeResponse && initialEntries[0] === "/edit"
+      ? [
+          {
+            pathname: "/edit",
+            state: { analyzeResponse },
+          },
+        ]
+      : initialEntries;
 
   render(
     <QueryClientProvider client={queryClient}>
       <SkillTreesContextProvider>
-        <MemoryRouter initialEntries={initialEntries}>
+        <MemoryRouter initialEntries={routerEntries}>
           <Routes>
             <Route path="/" element={<Search />} />
             <Route path="/edit" element={<Edit />} />
@@ -74,10 +87,31 @@ describe("React Router integration", () => {
     expect(searchInput).toBeInTheDocument();
   });
 
-  it("renders Edit page at /edit route", () => {
+  it("redirects to Search when Edit has no analyze response", async () => {
     renderSearchPageWithRouter(["/edit"]);
 
-    expect(screen.getByText("Edit")).toBeInTheDocument();
+    await waitForGraphToLoad();
+    expect(
+      screen.getByPlaceholderText(/search for a skill or url/i),
+    ).toBeInTheDocument();
+  });
+
+  it("displays prerequisite and objective strings from router state", () => {
+    const analyzeResponse: AnalyzeResponse = {
+      url: "https://example.com/lesson",
+      title: "Example lesson",
+      content: "Lesson content",
+      prerequisites: ["Basic arithmetic"],
+      objectives: ["Solve equations"],
+    };
+    renderSearchPageWithRouter(["/edit"], analyzeResponse);
+
+    expect(
+      screen.getByRole("heading", { name: "Prerequisites" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Basic arithmetic")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Objectives" })).toBeInTheDocument();
+    expect(screen.getByText("Solve equations")).toBeInTheDocument();
   });
 
   it("auto-generates path when URL contains endId param", async () => {

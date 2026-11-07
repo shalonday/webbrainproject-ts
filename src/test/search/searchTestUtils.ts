@@ -2,10 +2,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import React from "react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { expect } from "vitest";
 
 import { BASE_URL } from "../../common-constants";
 import { SkillTreesContextProvider } from "../../contexts/SkillTreesContext";
+import Edit from "../../pages/edit/Edit";
 import Search from "../../pages/search/Search";
 import { DEFAULT_START_NODE_ID } from "../../pages/search/search-utils";
 import type { WBNode } from "../../types/types";
@@ -49,7 +51,22 @@ export function renderSearchPage(): void {
       React.createElement(
         SkillTreesContextProvider,
         null,
-        React.createElement(Search),
+        React.createElement(
+          MemoryRouter,
+          null,
+          React.createElement(
+            Routes,
+            null,
+            React.createElement(Route, {
+              element: React.createElement(Search),
+              path: "/",
+            }),
+            React.createElement(Route, {
+              element: React.createElement(Edit),
+              path: "/edit",
+            }),
+          ),
+        ),
       ),
     ),
   );

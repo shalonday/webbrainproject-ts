@@ -12,6 +12,7 @@ const defaultProps = {
   doneNodeIds: [],
   isMoveForwardEnabled: false,
   isSearchActive: false,
+  onAnalyzeUrl: vi.fn().mockResolvedValue(undefined),
   onGeneratePath: vi.fn(),
   onKeyDown: vi.fn(),
   onMoveForward: vi.fn(),

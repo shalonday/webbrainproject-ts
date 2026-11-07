@@ -126,17 +126,12 @@ export interface ChatResponse {
   conversationState?: Record<string, unknown>;
 }
 
-export interface IngestionCandidate {
-  extractedName: string;
-  canonicalMatch: { uuid: string; name: string; similarity: number } | null;
-  autoAccepted: boolean;
-  role: "prerequisite" | "objective";
-}
-
 export interface AnalyzeResponse {
   url: string;
-  prerequisites: IngestionCandidate[];
-  objectives: IngestionCandidate[];
+  title: string;
+  content: string;
+  prerequisites: string[];
+  objectives: string[];
 }
 
 // ========================================

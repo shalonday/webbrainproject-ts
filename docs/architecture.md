@@ -12,7 +12,7 @@
 - `useLearningPathNavigator`: path generation/traversal. Fetches a path from `BASE_URL/paths/{start}/{target}`, tracks path tree/current node/done links & nodes, and exposes handlers for moving forward and logging landings.
 - Render layer: `Search.tsx` remains thin, wiring the two hooks into UI (cards, buttons, list) and passing state to `SearchPageChart`.
 - Flow (high level): user types → confirms search → selects a result → `useSearchPageState` sends `selectedResultId` to `useLearningPathNavigator` → path is fetched and stored → `Search.tsx` renders path list + passes highlighting to the chart.
-- Content ingestion: `SearchInput` collects the URL and passes it through `BottomSheet` to `Search.tsx`, which owns the API request. When both prerequisite and objective candidate lists are non-empty, `Search.tsx` navigates to `/edit` with the `AnalyzeResponse` in router state; request errors propagate back to the dialog for display.
+- Content ingestion: `SearchInput` collects the URL and passes it through `BottomSheet` to `Search.tsx`, which owns the API request. When both prerequisite and objective string lists are non-empty, `Search.tsx` navigates to `/edit` with the `AnalyzeResponse` in router state; request errors propagate back to the dialog for display. `Edit.tsx` reads the route state and redirects to Search when it is missing or invalid.
 
 ## Graph visualization
 

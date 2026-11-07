@@ -418,6 +418,8 @@ export const handlers = [
 
     return HttpResponse.json({
       url: body.url,
+      title: "Mock page title",
+      content: "Mock page content",
       prerequisites: [],
       objectives: [],
     });

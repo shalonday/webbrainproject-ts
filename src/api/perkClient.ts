@@ -64,8 +64,11 @@ export class PerkAPIClient {
    */
   async analyzeUrl(url: string): Promise<AnalyzeResponse> {
     try {
-      const response = await this.client.post("/ingest/analyze", { url });
-      return response.data as AnalyzeResponse;
+      const response = await this.client.post<AnalyzeResponse>(
+        "/ingest/analyze",
+        { url },
+      );
+      return response.data;
     } catch (error) {
       console.error("Ingestion analysis error:", error);
       throw error;
