@@ -119,7 +119,7 @@ function Edit(): ReactNode {
         Facere deleniti dicta veniam nemo, consectetur, laborum iste commodi eum
         fugiat quod autem.
       </Box>
-      <EditSigmaGraph />
+      <EditSigmaGraph analyzeResponse={analyzeResponse} />
       <EditNodeDialog open={open} onClose={() => setOpen(false)} />
       <Button variant="outlined">Cancel</Button>
       <Button variant="contained">Submit</Button>
