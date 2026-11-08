@@ -25,8 +25,8 @@ const viableAnalyzeResponse: AnalyzeResponse = {
   url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
   title: "JavaScript Guide",
   content: "JavaScript guide content",
-  prerequisites: ["Variables"],
-  objectives: ["Functions"],
+  prerequisites: [{ name: "Variables", uuid: null }],
+  objectives: [{ name: "Functions", uuid: null }],
 };
 
 /**

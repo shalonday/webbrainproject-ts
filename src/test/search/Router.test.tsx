@@ -101,8 +101,8 @@ describe("React Router integration", () => {
       url: "https://example.com/lesson",
       title: "Example lesson",
       content: "Lesson content",
-      prerequisites: ["Basic arithmetic"],
-      objectives: ["Solve equations"],
+      prerequisites: [{ name: "Basic arithmetic", uuid: null }],
+      objectives: [{ name: "Solve equations", uuid: null }],
     };
     renderSearchPageWithRouter(["/edit"], analyzeResponse);
 

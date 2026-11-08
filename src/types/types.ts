@@ -126,12 +126,17 @@ export interface ChatResponse {
   conversationState?: Record<string, unknown>;
 }
 
+export interface AnalyzedSkill {
+  name: string;
+  uuid: string | null;
+}
+
 export interface AnalyzeResponse {
   url: string;
   title: string;
   content: string;
-  prerequisites: string[];
-  objectives: string[];
+  prerequisites: AnalyzedSkill[];
+  objectives: AnalyzedSkill[];
 }
 
 // ========================================

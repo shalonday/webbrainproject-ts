@@ -2,8 +2,27 @@ import { Box, Button, Dialog, DialogTitle } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
-import type { AnalyzeResponse } from "../../types/types";
+import type { AnalyzedSkill, AnalyzeResponse } from "../../types/types";
 import EditSigmaGraph from "./EditSigmaGraph";
+
+/**
+ * Checks whether a value has the shape of an analyzed skill.
+ * Router state is untrusted at runtime, so validate its values before treating
+ * them as analyzed skills.
+ *
+ * @param value - Candidate response value.
+ * @returns Whether the value is a valid analyzed skill.
+ */
+function isAnalyzedSkill(value: unknown): value is AnalyzedSkill {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    typeof value.name === "string" &&
+    "uuid" in value &&
+    (typeof value.uuid === "string" || value.uuid === null)
+  );
+}
 
 /**
  * Checks whether a value has the response shape returned by the analyze endpoint.
@@ -25,14 +44,10 @@ function isAnalyzeResponse(value: unknown): value is AnalyzeResponse {
     typeof value.content === "string" &&
     "prerequisites" in value &&
     Array.isArray(value.prerequisites) &&
-    value.prerequisites.every(
-      (prerequisite: unknown) => typeof prerequisite === "string",
-    ) &&
+    value.prerequisites.every(isAnalyzedSkill) &&
     "objectives" in value &&
     Array.isArray(value.objectives) &&
-    value.objectives.every(
-      (objective: unknown) => typeof objective === "string",
-    )
+    value.objectives.every(isAnalyzedSkill)
   );
 }
 
@@ -80,14 +95,14 @@ function EditNodeDialog(props: EditNodeDialogProps) {
 function Edit(): ReactNode {
   const { state } = useLocation();
   const analyzeResponse = getAnalyzeResponse(state);
-
+  console.log(analyzeResponse);
   // TEMP vals for testing
   // const analyzeResponse: AnalyzeResponse = {
   //   url: "https://example.com/lesson",
   //   title: "Example lesson",
   //   content: "Lesson content",
-  //   prerequisites: ["Basic arithmetic"],
-  //   objectives: ["Solve equations"],
+  //   prerequisites: [{ name: "Basic arithmetic", uuid: null }],
+  //   objectives: [{ name: "Solve equations", uuid: null }],
   // };
 
   const [open, setOpen] = useState(false);
