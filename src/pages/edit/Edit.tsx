@@ -1,4 +1,4 @@
-import { Box, Button, Dialog, DialogTitle } from "@mui/material";
+import { Box, Button, Dialog, DialogTitle, Typography } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
@@ -113,13 +113,66 @@ function Edit(): ReactNode {
 
   return (
     <Box component="main" sx={{ p: 3 }}>
-      <Box component="div" sx={{ p: 3, border: "1px dashed grey" }}>
+      <Box
+        aria-label="Instructions"
+        component="section"
+        sx={{
+          border: "1px dashed grey",
+          mb: 2,
+          minHeight: 96,
+          p: 3,
+        }}
+      >
         Instructions: Lorem ipsum dolor sit amet consectetur adipisicing elit.
         Eos debitis incidunt quam quidem. Atque minima adipisci voluptatum!
         Facere deleniti dicta veniam nemo, consectetur, laborum iste commodi eum
         fugiat quod autem.
       </Box>
-      <EditSigmaGraph analyzeResponse={analyzeResponse} />
+      <Box
+        component="section"
+        sx={{
+          display: "grid",
+          gap: 2,
+          gridTemplateColumns: {
+            xs: "minmax(0, 1fr)",
+            md: "minmax(0, 2fr) minmax(280px, 1fr)",
+          },
+          mb: 2,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <EditSigmaGraph analyzeResponse={analyzeResponse} />
+        </Box>
+        <Box
+          aria-labelledby="analyzed-content-title"
+          component="aside"
+          sx={{
+            border: 1,
+            borderColor: "divider",
+            borderRadius: 1,
+            height: "60vh",
+            minHeight: 320,
+            overflowY: "auto",
+            p: 2,
+          }}
+        >
+          <Typography
+            component="h2"
+            id="analyzed-content-title"
+            sx={{ borderBottom: 1, borderColor: "divider", mb: 1, pb: 1 }}
+            variant="h6"
+          >
+            {analyzeResponse.title}
+          </Typography>
+          <Typography
+            component="p"
+            sx={{ m: 0, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}
+            variant="body2"
+          >
+            {analyzeResponse.content}
+          </Typography>
+        </Box>
+      </Box>
       <EditNodeDialog open={open} onClose={() => setOpen(false)} />
       <Button variant="outlined">Cancel</Button>
       <Button variant="contained">Submit</Button>

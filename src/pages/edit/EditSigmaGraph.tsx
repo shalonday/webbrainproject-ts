@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { Sigma } from "sigma";
+import Sigma from "sigma";
 
 import type { AnalyzeResponse } from "../../types/types";
 import { createAnalyzeResponseTree } from "./createAnalyzeResponseTree";
@@ -23,7 +23,7 @@ const SIGMA_SETTINGS = {
   labelRenderedSizeThreshold: 0,
   labelSize: 14,
   renderEdgeLabels: false,
-  renderLabels: false,
+  renderLabels: true,
   zIndex: true,
 } as const;
 

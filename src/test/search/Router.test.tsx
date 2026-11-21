@@ -96,7 +96,7 @@ describe("React Router integration", () => {
     ).toBeInTheDocument();
   });
 
-  it("displays prerequisite and objective strings from router state", () => {
+  it("displays the analyzed title and content from router state", () => {
     const analyzeResponse: AnalyzeResponse = {
       url: "https://example.com/lesson",
       title: "Example lesson",
@@ -107,11 +107,10 @@ describe("React Router integration", () => {
     renderSearchPageWithRouter(["/edit"], analyzeResponse);
 
     expect(
-      screen.getByRole("heading", { name: "Prerequisites" }),
+      screen.getByRole("heading", { name: "Example lesson" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Basic arithmetic")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Objectives" })).toBeInTheDocument();
-    expect(screen.getByText("Solve equations")).toBeInTheDocument();
+    expect(screen.getByText("Lesson content")).toBeInTheDocument();
+    expect(screen.getByTestId("edit-sigma-graph")).toBeInTheDocument();
   });
 
   it("auto-generates path when URL contains endId param", async () => {
