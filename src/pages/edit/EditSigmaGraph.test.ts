@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AnalyzeResponse } from "../../types/types";
 import { createAnalyzeResponseTree } from "./createAnalyzeResponseTree";
+import { createEditSigmaGraph } from "./createEditSigmaGraph";
 
 const ANALYZE_RESPONSE: AnalyzeResponse = {
   content: "Lesson content",
@@ -79,14 +80,50 @@ describe("createAnalyzeResponseTree", () => {
   it("deduplicates repeated skill names and links", () => {
     const tree = createAnalyzeResponseTree({
       ...ANALYZE_RESPONSE,
-      objectives: [{ name: "Variables", uuid: "existing-prerequisite-id" }],
+      objectives: [{ name: "Functions", uuid: null }],
       prerequisites: [
         { name: "Variables", uuid: "existing-prerequisite-id" },
         { name: "Variables", uuid: "existing-prerequisite-id" },
       ],
     });
 
-    expect(tree.nodes).toHaveLength(2);
+    expect(tree.nodes).toHaveLength(3);
     expect(tree.links).toHaveLength(2);
+  });
+});
+
+describe("createEditSigmaGraph", () => {
+  it("converts an embedding-free analyzed tree into a positioned graph", () => {
+    const tree = createAnalyzeResponseTree(ANALYZE_RESPONSE);
+    const graph = createEditSigmaGraph(tree);
+    const urlNode = tree.nodes.find((node) => node.type === "url");
+    const prerequisiteLink = tree.links.find(
+      (link) => link.target === urlNode?.uuid,
+    );
+    const objectiveLink = tree.links.find(
+      (link) => link.source === urlNode?.uuid,
+    );
+
+    expect(urlNode).toBeDefined();
+    expect(graph.order).toBe(tree.nodes.length);
+    expect(graph.size).toBe(tree.links.length);
+    expect(graph.getNodeAttributes(prerequisiteLink!.source).x).toBeLessThan(
+      graph.getNodeAttributes(urlNode!.uuid).x,
+    );
+    expect(graph.getNodeAttributes(objectiveLink!.target).x).toBeGreaterThan(
+      graph.getNodeAttributes(urlNode!.uuid).x,
+    );
+  });
+
+  it("rejects a skill that is both a prerequisite and an objective", () => {
+    expect(() =>
+      createAnalyzeResponseTree({
+        ...ANALYZE_RESPONSE,
+        objectives: [{ name: "Shared skill", uuid: null }],
+        prerequisites: [{ name: "Shared skill", uuid: null }],
+      }),
+    ).toThrow(
+      'Skill "Shared skill" cannot be both a prerequisite and an objective',
+    );
   });
 });
