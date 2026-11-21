@@ -6,7 +6,7 @@ import Sigma from "sigma";
 import { MINOR_RADIUS, RADIUS } from "../../common-constants";
 import type { WBNode } from "../../types/types";
 import type { GraphRendererProps } from "./graph-renderer-types";
-import { createSigmaGraph } from "./sigma/createSigmaGraph";
+import { createSearchSigmaGraph } from "./sigma/createSigmaGraph";
 
 type SigmaChartProps = GraphRendererProps;
 
@@ -60,7 +60,7 @@ function SigmaChart({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sigmaGraph = useMemo(
     () =>
-      createSigmaGraph({
+      createSearchSigmaGraph({
         currentNode,
         doneLinkIds,
         doneNodeIds,

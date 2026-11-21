@@ -6,7 +6,7 @@ import {
   MARKED_FOR_STUDY_FILL,
 } from "../../../common-constants";
 import type { Tree } from "../../../types/types";
-import { createSigmaGraph } from "./createSigmaGraph";
+import { createSearchSigmaGraph } from "./createSigmaGraph";
 
 const TREE: Tree = {
   links: [
@@ -43,9 +43,9 @@ const TREE: Tree = {
   ],
 };
 
-describe("createSigmaGraph", () => {
+describe("createSearchSigmaGraph", () => {
   it("preserves node and edge UUIDs as graph keys", () => {
-    const graph = createSigmaGraph({ tree: TREE });
+    const graph = createSearchSigmaGraph({ tree: TREE });
 
     expect(graph.hasNode("node-skill-a")).toBe(true);
     expect(graph.hasNode("node-url-a")).toBe(true);
@@ -59,14 +59,14 @@ describe("createSigmaGraph", () => {
   });
 
   it("produces deterministic graph structure and coordinates", () => {
-    const graphA = createSigmaGraph({ tree: TREE });
-    const graphB = createSigmaGraph({ tree: TREE });
+    const graphA = createSearchSigmaGraph({ tree: TREE });
+    const graphB = createSearchSigmaGraph({ tree: TREE });
 
     expect(graphA.export()).toStrictEqual(graphB.export());
   });
 
   it("attaches style-relevant node and edge attributes", () => {
-    const graph = createSigmaGraph({
+    const graph = createSearchSigmaGraph({
       currentNode: TREE.nodes[2],
       doneLinkIds: ["edge-b"],
       doneNodeIds: ["node-url-a"],
