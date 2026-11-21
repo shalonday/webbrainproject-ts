@@ -7,6 +7,36 @@ import type {
 } from "../../types/types";
 
 /**
+ * Creates a stable graph ID for a skill in an analysis response. Use a non-uuid string for new candidate skills; preexisting skills obtained from DB are true uuids that don't start with "candidate-skill"
+ *
+ * @param skill - The analyzed skill to identify.
+ * @returns The existing UUID or a candidate ID derived from its name.
+ */
+function getAnalyzedSkillId(skill: AnalyzedSkill): string {
+  return skill.uuid ?? `candidate-skill:${encodeURIComponent(skill.name)}`;
+}
+
+/**
+ * Rejects skills assigned to both sides of the analyzed URL.
+ *
+ * @param analyzeResponse - The response whose skill groups are validated.
+ */
+function validateSkillGroups(analyzeResponse: AnalyzeResponse): void {
+  const prerequisiteIds = new Set(
+    analyzeResponse.prerequisites.map(getAnalyzedSkillId),
+  );
+  const sharedSkill = analyzeResponse.objectives.find((skill) =>
+    prerequisiteIds.has(getAnalyzedSkillId(skill)),
+  );
+
+  if (sharedSkill) {
+    throw new Error(
+      `Skill "${sharedSkill.name}" cannot be both a prerequisite and an objective`,
+    );
+  }
+}
+
+/**
  * Adds analyzed skills and their directed links to the graph collections.
  *
  * @param skills - Skills on one side of the analyzed URL.
@@ -23,9 +53,7 @@ function addAnalyzedSkillsToTree(
   links: Map<string, Link>,
 ): void {
   for (const skill of skills) {
-    // use a non-uuid string for new candidate skills; preexisting skills obtained from DB are true uuids that don't start with "candidate-skill"
-    const skillId =
-      skill.uuid ?? `candidate-skill:${encodeURIComponent(skill.name)}`;
+    const skillId = getAnalyzedSkillId(skill);
     if (!nodes.has(skillId)) {
       nodes.set(skillId, {
         name: skill.name,
@@ -53,6 +81,8 @@ function addAnalyzedSkillsToTree(
 export function createAnalyzeResponseTree(
   analyzeResponse: AnalyzeResponse,
 ): Tree {
+  validateSkillGroups(analyzeResponse);
+
   const urlId = crypto.randomUUID();
   const nodes = new Map<string, WBNode>([
     [
@@ -80,9 +110,6 @@ export function createAnalyzeResponseTree(
     nodes,
     links,
   );
-
-  console.log("createAnalyzeResponseTree nodes:", nodes);
-  console.log("createAnalyzeResponseTree links:", links);
 
   return {
     links: [...links.values()],
