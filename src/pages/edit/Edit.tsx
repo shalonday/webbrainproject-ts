@@ -174,8 +174,20 @@ function Edit(): ReactNode {
         </Box>
       </Box>
       <EditNodeDialog open={open} onClose={() => setOpen(false)} />
-      <Button variant="outlined">Cancel</Button>
-      <Button variant="contained">Submit</Button>
+      <Box
+        component="footer"
+        sx={{
+          borderTop: 1,
+          borderColor: "divider",
+          display: "flex",
+          gap: 1,
+          justifyContent: "flex-end",
+          pt: 2,
+        }}
+      >
+        <Button variant="outlined">Cancel</Button>
+        <Button variant="contained">Submit</Button>
+      </Box>
     </Box>
   );
 }
