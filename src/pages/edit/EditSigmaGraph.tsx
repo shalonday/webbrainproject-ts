@@ -58,7 +58,7 @@ function EditSigmaGraph({ analyzeResponse }: EditSigmaGraphProps) {
       data-node-count={tree.nodes.length}
       data-testid="edit-sigma-graph"
       ref={containerRef}
-      style={{ height: "100%", width: "100%" }}
+      style={{ height: "60vh", minHeight: 320, width: "100%" }}
     />
   );
 }
