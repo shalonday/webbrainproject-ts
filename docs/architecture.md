@@ -16,6 +16,9 @@
 
 ## Graph visualization
 
+- `src/graph/createSigmaGraph.ts`: shared conversion from the Web Brain tree shape to a directed Graphology graph, with per-view node and edge attributes.
+- `src/pages/edit/createEditSigmaGraph.ts`: converts analyzed URL trees to Graphology and places prerequisites, the URL, and objectives in separate lanes.
+- `src/pages/search/sigma/createSigmaGraph.ts`: applies search-specific progress styling and deterministic embedding-based positions through the shared graph converter.
 - `D3Chart.tsx`: owns the force simulation, zoom/drag, and renders SVG markers. Styling/highlight helpers live in `graph-styles.ts` to keep D3Chart lean.
 - Highlighting rules: path nodes/links stay fully opaque; off-path are dimmed; done nodes/links use the DONE palette; selection toggles active fills.
 - `src/pages/search/sigma/sigma-force-layout.ts`: projects Sigma node positions from embeddings with a deterministic UMAP path and throws if embeddings are missing.

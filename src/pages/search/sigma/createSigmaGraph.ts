@@ -1,5 +1,4 @@
-import { DirectedGraph } from "graphology";
-
+import { createSigmaGraph as createGraphologySigmaGraph } from "../../../graph/createSigmaGraph";
 import type { Tree, WBNode } from "../../../types/types";
 import {
   getSigmaEdgeAttributes,
@@ -12,7 +11,7 @@ import { buildDeterministicForceLayoutPositions } from "./sigma-force-layout.ts"
 /**
  * Input contract for converting WB tree data into a Graphology graph for Sigma.
  */
-export interface CreateSigmaGraphParams {
+export interface CreateSearchSigmaGraphParams {
   currentNode?: WBNode | null;
   doneLinkIds?: string[];
   doneNodeIds?: string[];
@@ -24,11 +23,17 @@ export interface CreateSigmaGraphParams {
 }
 
 /**
- * Builds a deterministic directed graph keyed by WB node/link UUIDs.
+ * Builds a deterministic, styled graph for the search page.
+ *
+ * @param params - Search graph data and progress state.
+ * @returns A directed Graphology graph keyed by WB node and link UUIDs.
  */
-export function createSigmaGraph(
-  params: CreateSigmaGraphParams,
-): DirectedGraph<SigmaNodeAttributes, SigmaEdgeAttributes> {
+export function createSearchSigmaGraph(
+  params: CreateSearchSigmaGraphParams,
+): import("graphology").DirectedGraph<
+  SigmaNodeAttributes,
+  SigmaEdgeAttributes
+> {
   const {
     currentNode = null,
     doneLinkIds = [],
@@ -40,36 +45,22 @@ export function createSigmaGraph(
     tree,
   } = params;
 
-  const graph = new DirectedGraph<SigmaNodeAttributes, SigmaEdgeAttributes>();
-
-  // TODO(sigma-scale): Keep the UUID sort for now because it gives stable graph
-  // exports and deterministic seed positions during the D3 -> Sigma parity work.
-  // Revisit this when tree creation cost becomes measurable at larger scales:
-  // current complexity is O(n log n) time plus O(n) array copies for nodes/links.
-  // A follow-up refactor should preserve deterministic positions without a global
-  // sort, likely by deriving coordinates from a stable UUID hash or by caching
-  // deterministic positions/graph state across renders. If this changes, keep the
-  // adapter tests focused on deterministic output and validate that initial focus
-  // and camera-follow behavior still feel correct with the new position strategy.
+  // Stable ordering keeps graph exports and layout positions deterministic.
   const sortedNodes = [...tree.nodes].sort((a, b) =>
     a.uuid < b.uuid ? -1 : a.uuid > b.uuid ? 1 : 0,
   );
   const sortedLinks = [...tree.links].sort((a, b) =>
     a.uuid < b.uuid ? -1 : a.uuid > b.uuid ? 1 : 0,
   );
-
   const layoutPositions = buildDeterministicForceLayoutPositions(sortedNodes);
 
-  for (const [, node] of sortedNodes.entries()) {
-    if (graph.hasNode(node.uuid)) {
-      continue;
-    }
-
-    const position = layoutPositions[node.uuid];
-
-    graph.addNode(
-      node.uuid,
-      getSigmaNodeAttributes(node, position, {
+  return createGraphologySigmaGraph({
+    /** @param link - The relationship to style for the search graph. */
+    getEdgeAttributes: (link) =>
+      getSigmaEdgeAttributes(link, { doneLinkIds, pathTree }),
+    /** @param node - The node to position and style for the search graph. */
+    getNodeAttributes: (node) =>
+      getSigmaNodeAttributes(node, layoutPositions[node.uuid], {
         currentNode,
         doneNodeIds,
         doneNodeTimestamps,
@@ -77,28 +68,6 @@ export function createSigmaGraph(
         pathTree,
         selectedNodeIds,
       }),
-    );
-  }
-
-  for (const link of sortedLinks) {
-    if (!graph.hasNode(link.source) || !graph.hasNode(link.target)) {
-      continue;
-    }
-
-    if (graph.hasEdge(link.uuid)) {
-      continue;
-    }
-
-    graph.addDirectedEdgeWithKey(
-      link.uuid,
-      link.source,
-      link.target,
-      getSigmaEdgeAttributes(link, {
-        doneLinkIds,
-        pathTree,
-      }),
-    );
-  }
-
-  return graph;
+    tree: { links: sortedLinks, nodes: sortedNodes },
+  });
 }
