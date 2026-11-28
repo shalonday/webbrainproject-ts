@@ -1,9 +1,11 @@
-import { Box, Button, Dialog, DialogTitle, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import { type ReactNode, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
-import type { AnalyzedSkill, AnalyzeResponse } from "../../types/types";
+import type { AnalyzedSkill, AnalyzeResponse, WBNode } from "../../types/types";
+import { createAnalyzeResponseTree } from "./createAnalyzeResponseTree";
 import EditSigmaGraph from "./EditSigmaGraph";
+import EditSkillDialog from "./EditSkillDialog";
 
 /**
  * Checks whether a value has the shape of an analyzed skill.
@@ -20,7 +22,11 @@ function isAnalyzedSkill(value: unknown): value is AnalyzedSkill {
     "name" in value &&
     typeof value.name === "string" &&
     "uuid" in value &&
-    (typeof value.uuid === "string" || value.uuid === null)
+    (typeof value.uuid === "string" || value.uuid === null) &&
+    (!("assessmentUrls" in value) ||
+      value.assessmentUrls == null ||
+      (Array.isArray(value.assessmentUrls) &&
+        value.assessmentUrls.every((url: unknown) => typeof url === "string")))
   );
 }
 
@@ -70,23 +76,6 @@ function getAnalyzeResponse(state: unknown): AnalyzeResponse | undefined {
   return state.analyzeResponse;
 }
 
-export interface EditNodeDialogProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-/**
- *
- */
-function EditNodeDialog(props: EditNodeDialogProps) {
-  const { open, onClose } = props;
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>EditNodeDialog</DialogTitle>
-    </Dialog>
-  );
-}
-
 /**
  * Displays prerequisite and objective strings from a URL analysis.
  *
@@ -95,20 +84,45 @@ function EditNodeDialog(props: EditNodeDialogProps) {
 function Edit(): ReactNode {
   const { state } = useLocation();
   const analyzeResponse = getAnalyzeResponse(state);
-  console.log(analyzeResponse);
-  // TEMP vals for testing
-  // const analyzeResponse: AnalyzeResponse = {
-  //   url: "https://example.com/lesson",
-  //   title: "Example lesson",
-  //   content: "Lesson content",
-  //   prerequisites: [{ name: "Basic arithmetic", uuid: null }],
-  //   objectives: [{ name: "Solve equations", uuid: null }],
-  // };
-
-  const [open, setOpen] = useState(false);
 
   if (!analyzeResponse) {
     return <Navigate to="/" replace />;
+  }
+
+  return <EditContent analyzeResponse={analyzeResponse} />;
+}
+
+/**
+ * Owns the editable graph for one analysis.
+ *
+ * @param props - The analysis to edit.
+ * @returns The edit page.
+ */
+function EditContent({
+  analyzeResponse,
+}: {
+  analyzeResponse: AnalyzeResponse;
+}) {
+  const [tree, setTree] = useState(() =>
+    createAnalyzeResponseTree(analyzeResponse),
+  );
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const selectedNode = tree.nodes.find((node) => node.uuid === selectedNodeId);
+  const isNewSkill = selectedNode?.uuid.startsWith("candidate-skill:") ?? false;
+
+  /**
+   * Updates the selected node without changing its ID or links.
+   *
+   * @param updatedNode - The edited skill.
+   */
+  function saveSkill(updatedNode: WBNode) {
+    setTree((currentTree) => ({
+      ...currentTree,
+      nodes: currentTree.nodes.map((node) =>
+        node.uuid === updatedNode.uuid ? updatedNode : node,
+      ),
+    }));
+    setSelectedNodeId(null);
   }
 
   return (
@@ -141,7 +155,7 @@ function Edit(): ReactNode {
         }}
       >
         <Box sx={{ minWidth: 0 }}>
-          <EditSigmaGraph analyzeResponse={analyzeResponse} />
+          <EditSigmaGraph onSkillClick={setSelectedNodeId} tree={tree} />
         </Box>
         <Box
           aria-labelledby="analyzed-content-title"
@@ -173,7 +187,14 @@ function Edit(): ReactNode {
           </Typography>
         </Box>
       </Box>
-      <EditNodeDialog open={open} onClose={() => setOpen(false)} />
+      {selectedNode && (
+        <EditSkillDialog
+          isNewSkill={isNewSkill}
+          node={selectedNode}
+          onClose={() => setSelectedNodeId(null)}
+          onSave={saveSkill}
+        />
+      )}
       <Box
         component="footer"
         sx={{

@@ -19,6 +19,23 @@ const ANALYZE_RESPONSE: AnalyzeResponse = {
 };
 
 describe("createAnalyzeResponseTree", () => {
+  it("preserves existing assessment URLs on skill nodes", () => {
+    const tree = createAnalyzeResponseTree({
+      ...ANALYZE_RESPONSE,
+      prerequisites: [
+        {
+          assessmentUrls: ["https://example.com/assessment"],
+          name: "Variables",
+          uuid: "existing-prerequisite-id",
+        },
+      ],
+    });
+
+    expect(
+      tree.nodes.find((node) => node.uuid === "existing-prerequisite-id"),
+    ).toMatchObject({ assessmentUrls: ["https://example.com/assessment"] });
+  });
+
   it("creates URL and skill nodes using the shared tree schema", () => {
     const tree = createAnalyzeResponseTree(ANALYZE_RESPONSE);
     const urlNode = tree.nodes.find((node) => node.type === "url");
