@@ -56,6 +56,9 @@ function addAnalyzedSkillsToTree(
     const skillId = getAnalyzedSkillId(skill);
     if (!nodes.has(skillId)) {
       nodes.set(skillId, {
+        ...(skill.assessmentUrls != null
+          ? { assessmentUrls: [...skill.assessmentUrls] }
+          : {}),
         name: skill.name,
         type: "skill",
         uuid: skillId,

@@ -5,6 +5,7 @@ export interface WBNode {
   type: "skill" | "url";
   name: string;
   embedding?: number[];
+  assessmentUrls?: string[] | null;
 }
 
 export interface Link {
@@ -29,6 +30,7 @@ export interface SkillNode {
   uuid: string;
   name: string;
   embedding?: number[];
+  assessmentUrls?: string[] | null;
 }
 
 export interface URLNode {
@@ -129,6 +131,7 @@ export interface ChatResponse {
 export interface AnalyzedSkill {
   name: string;
   uuid: string | null;
+  assessmentUrls?: string[] | null;
 }
 
 export interface AnalyzeResponse {
